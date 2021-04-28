@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.jfoenix.controls.JFXButton?>
+<?import com.jfoenix.controls.JFXTextField?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+
+<VBox alignment="CENTER" maxHeight="-Infinity" minHeight="-Infinity" minWidth="-Infinity" spacing="50.0" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <JFXTextField labelFloat="true" promptText="USERNAME" />
+      <HBox alignment="CENTER" spacing="100.0">
+         <children>
+            <Label text="Play Now :" />
+            <JFXButton alignment="CENTER" text="Host" wrapText="true" />
+            <JFXButton alignment="CENTER" text="Join" wrapText="true" />
+         </children>
+         <padding>
+            <Insets left="50.0" right="50.0" />
+         </padding>
+      </HBox>
+      <HBox alignment="CENTER" layoutX="30.0" layoutY="85.0" spacing="100.0">
+         <children>
+            <JFXTextField labelFloat="true" promptText="Room ID" />
+            <JFXButton alignment="CENTER" text="Join Room" wrapText="true" />
+         </children>
+         <padding>
+            <Insets left="50.0" right="50.0" />
+         </padding>
+      </HBox>
+   </children>
+   <padding>
+      <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+   </padding>
+</VBox>
