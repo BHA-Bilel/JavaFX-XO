@@ -51,7 +51,7 @@ Describe how to install / setup your local environement / add link to demo versi
 Portable exe file in setup folder
 
 ## Collection
-- XO [current](https://github.com/BHA-Bilel/JavaFX-XO)
+- XO (current)
 - [Checkers](https://github.com/BHA-Bilel/JavaFX-CHECKERS)
 - [Chess](https://github.com/BHA-Bilel/JavaFX-CHESS)
 - [Connect4](https://github.com/BHA-Bilel/JavaFX-CONNECT4)
