@@ -70,8 +70,8 @@ The game works as any other XO game but in a distributed environment,
 you can end the game without leaving the room using the **Return to..** menu at the top.
 
 # Setup
-Describe how to install / setup your local environement / add link to demo version.
-Portable exe file in setup folder
+Click [here](./setup/XO.jar?raw=true) to download the executable jar.
+Double click it to launch the game, that's it!
 
 # Collection
 - XO (current)
