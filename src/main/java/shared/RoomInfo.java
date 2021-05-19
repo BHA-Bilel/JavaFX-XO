@@ -4,7 +4,6 @@ import java.io.Serializable;
 
 public class RoomInfo implements Serializable {
 
-    private static final long serialVersionUID = 544691827159949942L;
     public final int room_id;
     public final String host_name;
     public final int room_players;
