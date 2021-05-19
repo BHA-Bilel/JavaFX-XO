@@ -10,7 +10,7 @@
 
 ## Table of contents
 * [Hello, World!](#hello-world)
-* [Game Charachteristics](game-charachteristics)
+* [xo.shared.Game Charachteristics](game-charachteristics)
 * [How to play](#how-to-play)
 * [Setup](#setup)
 * [Collection](#collection)
@@ -28,7 +28,7 @@ A GridPane filled with Clickable Nodes and you got yourself an XO game **gui**,
 combined with a little bit of **logic** to handle game outcomes (win, lose, tie) is all you need to make an XO game,
 the **networking** part is nothing but a tunnel between 2 clients.
 
-# Game Charachteristics
+# xo.shared.Game Charachteristics
 - Turn based
 - Multiplayer (no AI)
 - Tabletop view (2D)
@@ -64,7 +64,7 @@ The host has in addition the ability to:
 
 Host privileges are **passed** automatically to the next player if the host leaves the room
 
-![Game app gui](./screenshots/gameApp.png)
+![xo.shared.Game app gui](./screenshots/gameApp.png)
 
 The game works as any other XO game but in a distributed environment, 
 you can end the game without leaving the room using the **Return to..** menu at the top.
@@ -95,7 +95,7 @@ All the collection was initially developed in **Eclipse IDE** in late 2019, befo
 
 - **All** of the projects/repositories in my profile are produced by an **individual** effort, that I coded from **scratch**. However, I won't deny that I had to watch some Youtube tutorials to get a hint of how the logic works, for example I inspired the game logic from the tutorial below:
 
-[JavaFX Game Tutorial: TicTacToe](https://www.youtube.com/watch?v=Uj8rPV6JbCE) by **Almas Baimagambetov** on Youtube. Check out his channel, it's focused around game dev using JavaFX and the FXGL engine.
+[JavaFX xo.shared.Game Tutorial: TicTacToe](https://www.youtube.com/watch?v=Uj8rPV6JbCE) by **Almas Baimagambetov** on Youtube. Check out his channel, it's focused around game dev using JavaFX and the FXGL engine.
 
 # Feedback
 What do you think of this project? leave your thoughts/recommendations !
