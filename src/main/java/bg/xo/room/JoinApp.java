@@ -1,9 +1,6 @@
 package bg.xo.room;
 
-import bg.xo.gfx.Assets;
 import bg.xo.MainApp;
-import shared.MainRequest;
-import shared.RoomInfo;
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXTextField;
 import javafx.application.Platform;
@@ -16,6 +13,8 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import shared.MainRequest;
+import shared.RoomInfo;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -43,13 +42,13 @@ public class JoinApp extends VBox {
         setAlignment(Pos.CENTER);
         this.username = new JFXTextField(username);
         this.username.setPromptText("username");
-        this.username.setPrefWidth(Assets.scale_width(500));
-        this.username.setMaxWidth(Assets.scale_width(500));
-
+        VBox username_vb = new VBox();
+        username_vb.getChildren().add(this.username);
+        username_vb.setPadding(new Insets(20, 0, 20, 0));
         featuringGP = new FeaturingGP();
 
         HBox bottom_hb = new HBox(100);
-        HBox.setMargin(bottom_hb, new Insets(50, 50, 0, 50));
+        bottom_hb.setPadding(new Insets(50, 50, 50, 50));
         JFXButton return_home = new JFXButton("Return Home");
         return_home.setMinSize(JFXButton.USE_PREF_SIZE, JFXButton.USE_PREF_SIZE);
         return_home.getStyleClass().add("kick");
@@ -58,7 +57,7 @@ public class JoinApp extends VBox {
         refreshButton.setMinSize(JFXButton.USE_PREF_SIZE, JFXButton.USE_PREF_SIZE);
         refreshButton.setOnAction(e -> joinClient.askForMore());
         bottom_hb.getChildren().addAll(return_home, refreshButton);
-        getChildren().addAll(this.username, featuringGP, bottom_hb);
+        getChildren().addAll(username_vb, featuringGP, bottom_hb);
     }
 
     public volatile boolean returned = false;
@@ -96,7 +95,7 @@ public class JoinApp extends VBox {
                 for (int i = 0; i < list_size; i++) {
                     list.add((RoomInfo) objIn.readObject());
                 }
-                Platform.runLater(() -> featuringGP.refresh(list, true));
+                Platform.runLater(() -> featuringGP.refresh(list));
             } catch (IOException | ClassNotFoundException ex) {
                 returnHome(true);
             }
@@ -104,7 +103,7 @@ public class JoinApp extends VBox {
 
         private void askForMore() {
             MainApp.prevent_user_interactions();
-            featuringGP.getChildren().clear();
+            featuringGP.clear();
             Thread t = new Thread(() -> {
                 try {
                     objOut.writeBoolean(true);
@@ -115,7 +114,7 @@ public class JoinApp extends VBox {
                         list.add((RoomInfo) objIn.readObject());
                     }
                     Platform.runLater(() -> {
-                        featuringGP.refresh(list, false);
+                        featuringGP.refresh(list);
                         MainApp.allow_user_interactions();
                     });
                 } catch (IOException | ClassNotFoundException e) {
@@ -181,9 +180,10 @@ public class JoinApp extends VBox {
 
             emptyLabel = new Label("No rooms are available at the moment,\nPlease come back later.");
             GridPane.setHalignment(emptyLabel, HPos.CENTER);
+            populate();
         }
 
-        public void refresh(List<RoomInfo> infos, boolean first_time) {
+        public void refresh(List<RoomInfo> infos) {
             int row = 0, column = 0;
             for (RoomInfo info : infos) {
                 Label room_label = new Label(info.host_name);
@@ -208,11 +208,21 @@ public class JoinApp extends VBox {
                 column = 0;
                 row++;
             }
-            if (!first_time) {
-                mainApp.update_width_height(Assets.joinApp_width, Assets.joinApp_height);
-            }
             if (infos.isEmpty()) {
-                featuringGP.add(emptyLabel, 0, 0);
+                featuringGP.add(emptyLabel, 0, 2);
+            }
+        }
+
+        public void clear() {
+            getChildren().clear();
+            populate();
+        }
+
+        private void populate() {
+            for (int row = 0; row < 5; row++) {
+                JFXButton empty = new JFXButton();
+                empty.setVisible(false);
+                add(empty, 0, row);
             }
         }
     }

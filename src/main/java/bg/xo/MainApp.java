@@ -4,36 +4,30 @@ import bg.xo.game.GameApp;
 import bg.xo.gfx.Assets;
 import bg.xo.room.JoinApp;
 import bg.xo.room.RoomApp;
-import shared.Game;
-import shared.MainRequest;
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXTextField;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.embed.swing.SwingFXUtils;
 import javafx.event.Event;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.SnapshotParameters;
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.Alert;
-import javafx.scene.control.TextField;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.MenuBar;
+import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.TextField;
 import javafx.scene.control.ButtonBar.ButtonData;
-import javafx.scene.control.TextInputDialog;
-import javafx.scene.image.WritableImage;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import shared.Game;
+import shared.MainRequest;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
-import java.awt.image.RenderedImage;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -62,12 +56,11 @@ public class MainApp extends Application {
     private JoinApp joinApp;
     public RoomApp roomApp;
 
-    private double width_diff, height_diff;
-
     @Override
     public void start(Stage primaryStage) {
         Assets.init_scale();
         stage = primaryStage;
+        stage.setResizable(false);
         hold_alert = new Alert(AlertType.INFORMATION);
         hold_alert.setTitle(THIS_GAME.toString());
         hold_alert.setHeaderText("Please hold for a moment...");
@@ -194,14 +187,6 @@ public class MainApp extends Application {
     }
 
     private void update_Server_IpPort() {
-//        Properties prop = new Properties();
-//        try (InputStream ip = MainApp.class.getResourceAsStream("/config.properties")) {
-//            prop.load(ip);
-//            prop.setProperty("SERVER_IP", MainApp.SERVER_IP);
-//            prop.setProperty("PORT", String.valueOf(MainApp.MAIN_PORT));
-//        } catch (IOException ignore) {
-//        }
-
         Properties prop = new Properties();
         String fname = "src/main/resources/config.properties";
         try (InputStream ip = MainApp.class.getResourceAsStream("/config.properties")) {
@@ -234,56 +219,15 @@ public class MainApp extends Application {
         scene.getStylesheets().add(MainApp.class.getResource("/application.css").toExternalForm());
         stage.setTitle("JavaFX-" + THIS_GAME);
         stage.setScene(scene);
-        stage.show();
-        stage.widthProperty().addListener((obs, oldVal, newVal) -> root.setMinWidth(stage.getWidth() * Assets.unscale_width - width_diff * Assets.unscale_width));
-
-        stage.heightProperty().addListener((obs, oldVal, newVal) -> root.setMinHeight(stage.getHeight() * Assets.unscale_height - height_diff * Assets.unscale_height));
-        Assets.mainApp_width = stage.getWidth();
-        Assets.mainApp_height = stage.getHeight();
-        width_diff = stage.getWidth() - scene.getWidth();
-        height_diff = stage.getHeight() - scene.getHeight();
-        update_width_height(Assets.mainApp_width, Assets.mainApp_height);
         stage.setOnCloseRequest(e -> System.exit(0));
 
-//        setup_snap_tool();
-    }
+        stage.show();
 
-    private void setup_snap_tool() { // method to take screenshots of scene
-        Stage snapshot_stage = new Stage();
-        VBox snapshot_root = new VBox();
-        TextField fname = new TextField();
-        JFXButton snapshot = new JFXButton("take snapshot!");
-        snapshot.setOnAction(e -> {
-            WritableImage image = root.snapshot(new SnapshotParameters(), null);
-            File file = new File("screenshots/" + fname.getText() + ".png");
-            RenderedImage renderedImage = SwingFXUtils.fromFXImage(image, null);
-            try {
-                ImageIO.write(
-                        renderedImage,
-                        "png",
-                        file);
-            } catch (IOException ignore) {
-            }
-
-        });
-        snapshot_root.getChildren().addAll(fname, snapshot);
-        Scene snapshot_scene = new Scene(snapshot_root);
-        snapshot_stage.setScene(snapshot_scene);
-        snapshot_stage.show();
-    }
-
-
-    public void update_width_height(double width, double height) {
-        stage.sizeToScene();
-        root.setMinWidth(width * Assets.unscale_width - width_diff * Assets.unscale_width);
-        root.setMinHeight(height * Assets.unscale_height - height_diff * Assets.unscale_height);
-        double stage_min_width = width * Assets.scale_width + width_diff * Assets.unscale_width;
-        double stage_min_height = height * Assets.scale_height + height_diff * Assets.unscale_height;
-        stage.setMinWidth(stage_min_width);
-        stage.setMinHeight(stage_min_height);
-        stage.setWidth(stage_min_width);
-        stage.setHeight(stage_min_height);
-        stage.centerOnScreen();
+        Bounds cbis = center.localToScene(center.getBoundsInLocal());
+        stage.setWidth(cbis.getWidth() + center.getLayoutX());
+        stage.setHeight(cbis.getHeight() + center.getLayoutY());
+        Assets.mainApp_width = stage.getWidth();
+        Assets.mainApp_height = stage.getHeight();
     }
 
     private MenuBar createTopGUI() {
@@ -543,9 +487,9 @@ public class MainApp extends Application {
         center.setAlignment(Pos.CENTER);
         JFXTextField username = new JFXTextField();
         username.setPromptText("username");
-        username.setPrefWidth(500);
-        username.setMaxWidth(500);
-        username.setPadding(new Insets(20, 0, 20, 0));
+        VBox username_vb = new VBox();
+        username_vb.getChildren().add(username);
+        username_vb.setPadding(new Insets(20, 0, 20, 0));
 
         HBox hb1 = new HBox(100);
         hb1.setPadding(new Insets(0, 50, 0, 50));
@@ -586,7 +530,7 @@ public class MainApp extends Application {
             JoinSpecificRoom(username.getText(), roomID);
         });
         hb2.getChildren().addAll(room_id, join_specific);
-        center.getChildren().addAll(username, hb1, hb2);
+        center.getChildren().addAll(username_vb, hb1, hb2);
         return center;
     }
 
@@ -596,6 +540,13 @@ public class MainApp extends Application {
             alert.setTitle(THIS_GAME.toString());
             alert.setHeaderText("You must enter a username !");
             alert.setContentText("Enter a username to play");
+            alert.show();
+            return false;
+        } else if (username.length() > 10) {
+            Alert alert = new Alert(AlertType.WARNING);
+            alert.setTitle(THIS_GAME.toString());
+            alert.setHeaderText("Username too long!");
+            alert.setContentText("Username must be 1-10 characters");
             alert.show();
             return false;
         }
@@ -738,7 +689,9 @@ public class MainApp extends Application {
         joinApp = null;
         roomApp = null;
         root.setCenter(center);
-        update_width_height(Assets.mainApp_width, Assets.mainApp_height);
+        stage.setWidth(Assets.mainApp_width);
+        stage.setHeight(Assets.mainApp_height);
+        stage.centerOnScreen();
         if (exception) {
             Alert alert = new Alert(AlertType.WARNING);
             alert.setTitle(MainApp.THIS_GAME.toString());
@@ -759,10 +712,16 @@ public class MainApp extends Application {
         root.setCenter(joinApp);
         if (Assets.joinApp_width == 0) {
             stage.sizeToScene();
+            Bounds cbis = joinApp.localToScene(joinApp.getBoundsInLocal());
+            stage.setWidth(cbis.getWidth() + joinApp.getLayoutX());
+            stage.setHeight(cbis.getHeight() + joinApp.getLayoutY());
             Assets.joinApp_width = stage.getWidth();
             Assets.joinApp_height = stage.getHeight();
+        } else {
+            stage.setWidth(Assets.joinApp_width);
+            stage.setHeight(Assets.joinApp_height);
         }
-        update_width_height(Assets.joinApp_width, Assets.joinApp_height);
+        stage.centerOnScreen();
         allow_user_interactions();
     }
 
@@ -773,10 +732,16 @@ public class MainApp extends Application {
         root.setCenter(roomApp);
         if (Assets.roomApp_width == 0) {
             stage.sizeToScene();
+            Bounds cbis = roomApp.localToScene(roomApp.getBoundsInLocal());
+            stage.setWidth(cbis.getWidth() + roomApp.getLayoutX());
+            stage.setHeight(cbis.getHeight() + roomApp.getLayoutY());
             Assets.roomApp_width = stage.getWidth();
             Assets.roomApp_height = stage.getHeight();
+        } else {
+            stage.setWidth(Assets.roomApp_width);
+            stage.setHeight(Assets.roomApp_height);
         }
-        update_width_height(Assets.roomApp_width, Assets.roomApp_height);
+        stage.centerOnScreen();
         allow_user_interactions();
     }
 
@@ -785,12 +750,16 @@ public class MainApp extends Application {
         root.setCenter(gameApp);
         if (Assets.gameApp_width == 0) {
             stage.sizeToScene();
+            Bounds cbis = gameApp.localToScene(gameApp.getBoundsInLocal());
+            stage.setWidth(cbis.getWidth() + gameApp.getLayoutX());
+            stage.setHeight(cbis.getHeight() + gameApp.getLayoutY());
             Assets.gameApp_width = stage.getWidth();
             Assets.gameApp_height = stage.getHeight();
+        } else {
+            stage.setWidth(Assets.gameApp_width);
+            stage.setHeight(Assets.gameApp_height);
         }
-        update_width_height(Assets.gameApp_width, Assets.gameApp_height);
         stage.centerOnScreen();
-
         allow_user_interactions();
     }
 

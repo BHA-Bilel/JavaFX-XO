@@ -75,7 +75,7 @@ public class RoomApp extends VBox {
     private HBox createTopHBox() {
         HBox topHBox = new HBox(100);
         topHBox.setAlignment(Pos.CENTER);
-        HBox.setMargin(topHBox, new Insets(20, 0, 20, 0));
+        topHBox.setPadding(new Insets(20, 0, 20, 0));
 
         JFXButton change_name = new JFXButton("Change name");
         change_name.setMinSize(JFXButton.USE_PREF_SIZE, JFXButton.USE_PREF_SIZE);
@@ -135,13 +135,13 @@ public class RoomApp extends VBox {
 
     private VBox createHostVBox() {
         VBox hostVBox = new VBox();
-        VBox.setMargin(hostVBox, new Insets(20));
+        hostVBox.setPadding(new Insets(20));
         hostVBox.setMaxWidth(750);
         hostVBox.setDisable(true);
         Label host_privileges = new Label("Host Privileges");
 
         HBox hostHBox = new HBox(100);
-        HBox.setMargin(hostHBox, new Insets(20, 0, 20, 0));
+        hostHBox.setPadding(new Insets(20, 0, 50, 0));
         hostHBox.setAlignment(Pos.CENTER);
 
         HBox privacy_hb = new HBox(20);
@@ -308,7 +308,9 @@ public class RoomApp extends VBox {
                     while (i < playersBeforeYou) {
                         RoomMsg msg = (RoomMsg) objIn.readObject();
                         if (msg.comm == RoomComm.JOINED.ordinal()) {
-                            Platform.runLater(() -> addPlayer(true, msg.from, (String) msg.adt_data[0], RoomPosition.values()[(int) msg.adt_data[1]]));
+                            Platform.runLater(() ->
+                                    addPlayer(true, msg.from, (String) msg.adt_data[0],
+                                            RoomPosition.values()[(int) msg.adt_data[1]]));
                             i++;
                         } else {
                             queued.add(msg);
@@ -373,7 +375,8 @@ public class RoomApp extends VBox {
                     break;
                 }
                 case JOINED: {
-                    Platform.runLater(() -> addPlayer(false, msg.from, (String) msg.adt_data[0], RoomPosition.values()[(int) msg.adt_data[1]]));
+                    Platform.runLater(() -> addPlayer(false, msg.from, (String) msg.adt_data[0],
+                            RoomPosition.values()[(int) msg.adt_data[1]]));
                     break;
                 }
                 case LEFT: {
@@ -687,7 +690,8 @@ public class RoomApp extends VBox {
             if (player != null) {
                 Object[] player_info = emptyPosition(player.position);
                 if (player_info != null)
-                    addExistingPlayerToPosition(taken_position, (int) player_info[0], (String) player_info[1], (boolean) player_info[2]);
+                    addExistingPlayerToPosition(taken_position, (int) player_info[0],
+                            (String) player_info[1], (boolean) player_info[2]);
             }
         }
 

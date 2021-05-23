@@ -1,29 +1,21 @@
-.root {
-	-fx-background-color: white;
-}
-
 .label:disabled, .label:disabled > * {
     -fx-opacity: 1.0;
 }
 
 .text {
 	-fx-font-family: "Century Gothic";
-	/*-fx-font-size: 20.0px;*/
 	-fx-text-fill: Black;
 }
 
 .table-view {
 	-fx-font-family: "Century Gothic";
-	/*-fx-font-size: 50.0px;*/
 }
 
 .jfx-text-field	{
 	-jfx-label-float : true;
 	-jfx-focus-color: Blue;
-	/*-fx-border-width: 10.0px;*/
 	-jfx-unfocus-color: Black;
 	-fx-font-family: "Century Gothic";
-	/*-fx-font-size: 18.0px;*/
 }
 
 .button {
@@ -33,7 +25,6 @@
 	-fx-border-width : 3.0;
 	-fx-background-radius : 20.0;
 	-fx-font-family: "Century Gothic";
-	/*-fx-font-size: 20.0px;*/
 	-fx-text-fill: Black;
 }
 
@@ -57,7 +48,6 @@
 	-fx-border-width : 3.0;
 	-fx-background-radius : 20.0;
 	-fx-font-family: "Century Gothic";
-	/*-fx-font-size: 20.0px;*/
 }
 
 .public:focused {
@@ -88,7 +78,6 @@
 	-fx-border-width : 3.0;
 	-fx-background-radius : 20.0;
 	-fx-font-family: "Century Gothic";
-	/*-fx-font-size: 20.0px;*/
 }
 
 .private:hover {
@@ -114,7 +103,6 @@
 
 .kick {
 	-fx-font-family: "Century Gothic";
- 	/*-fx-font-size: 20.0px;*/
 	-fx-border-color : #DB4437;
     -fx-text-fill: #DB4437;
     -fx-background-color: white;
@@ -143,7 +131,6 @@
 .jfx-check-box {
 	-fx-text-fill: black;
 	-fx-font-family: "Century Gothic";
-	/*-fx-font-size: 18.0px;*/
 }
 
 .check-box:disabled, .check-box:disabled > * {
