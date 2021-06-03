@@ -5,6 +5,9 @@ module MainModule {
     requires java.desktop;
 
     exports shared;
+    exports bg.xo.server.local;
+    exports bg.xo.server.room;
+    exports bg.xo.lang;
     exports bg.xo.room;
     exports bg.xo.game;
     exports bg.xo;

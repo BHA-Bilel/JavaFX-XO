@@ -1,93 +1,64 @@
 package bg.xo.game;
 
+import bg.xo.MainApp;
+import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
+import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Font;
-import javafx.scene.text.Text;
-
-import java.util.List;
 
 public class Tile extends StackPane {
-    private final int x, y;
-    private final Text text = new Text();
-    private final Handler handler;
 
-    public Tile(Handler handler, int x, int y) {
+    private final int x, y;
+    private final Label text;
+    private final GameApp gameApp;
+
+    public Tile(GameApp gameApp, int x, int y) {
+        this.gameApp = gameApp;
         this.x = x;
         this.y = y;
-        Rectangle border = new Rectangle(200, 200);
-        border.setFill(null);
-        border.setStroke(Color.BLACK);
-        text.setFont(Font.font(72));
+        Region border = new Region();
+        border.setStyle("-fx-border-color: black");
+        border.prefWidthProperty().bind(gameApp.heightProperty().divide(3));
+        border.prefHeightProperty().bind(gameApp.heightProperty().divide(3));
+        text = new Label();
+        text.styleProperty().bind(Bindings.concat("-fx-font-size: ", MainApp.fontProperty.multiply(3).asString()));
+
         setAlignment(Pos.CENTER);
         getChildren().addAll(border, text);
-        this.handler = handler;
         setOnMouseClicked(event -> {
-            if (!text.getText().isEmpty() || event.getButton() != MouseButton.PRIMARY || !handler.getGame().isPlayable()
-                    || !handler.getGame().isYourTurn())
+            if (!text.getText().isEmpty() || event.getButton() != MouseButton.PRIMARY || !gameApp.isPlayable()
+                    || !gameApp.isYourTurn())
                 return;
             play();
         });
     }
 
     public void play() {
-        if (this.handler.getGame().isYourTurn()) {
+        gameApp.cpt++;
+        if (this.gameApp.isYourTurn()) {
             text.setText("X");
-            handler.getGame().setYourTurn(false);
-            handler.getGame().getCSC().sendCoor(x, y);
-            if (NothingHappened(handler.getGame().getCombo())) {
-                handler.getGame().waitForYourTurn();
-            }
+            gameApp.setYourTurn(false);
+            gameApp.sendCoor(x, y);
+            if (gameApp.NothingHappened())
+                gameApp.waitForYourTurn();
         } else {
             text.setText("O");
-            if (NothingHappened(handler.getGame().getCombo()))
-                handler.getGame().setYourTurn(true);
+            if (gameApp.NothingHappened())
+                gameApp.setYourTurn(true);
         }
-    }
-
-    public boolean NothingHappened(List<Combo> combos) {
-        for (Combo c : combos) {
-            if (c.isComplete()) {
-                handler.getGame().setPlayable(false);
-                boolean youWon = c.getTiles()[0].getValue().equals("X");
-                if (youWon)
-                    handler.getGame().parties_won++;
-                else
-                    handler.getGame().parties_lost++;
-                handler.getGame().drawLine(c.getTiles(), youWon);
-                return false;
-            }
-        }
-        int cpt = 0;
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (!handler.getGame().getBoard()[i][j].isEmpty())
-                    cpt++;
-            }
-        }
-        if (cpt == 9) {
-            handler.getGame().startNewGame(
-                    handler.getGame().getDrawCount() % 2 == (handler.getGame().getPlayerID() - 1));
-            handler.getGame().drawCount++;
-            handler.getGame().showResults();
-            return false;
-        }
-        return true;
-    }
-
-    public boolean isEmpty() {
-        return text.getText().isEmpty();
     }
 
     public String getValue() {
         return text.getText();
     }
 
-    public Text getText() {
+    public Label getLabel() {
         return text;
     }
 
+    public void reset() {
+        text.setText("");
+    }
 }

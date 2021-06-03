@@ -52,5 +52,7 @@ public enum RoomComm {
 	/** server started the game */
 	GAME_STARTED,
 	/** server ended the game */
-	GAME_ENDED;
+	GAME_ENDED,
+	/** migration to new host's room (room_info in adt_data)  */
+	MIGRATION
 }

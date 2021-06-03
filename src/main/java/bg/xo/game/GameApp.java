@@ -1,5 +1,8 @@
 package bg.xo.game;
 
+import bg.xo.MainApp;
+import bg.xo.lang.Language;
+import bg.xo.popup.MyAlert;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
@@ -7,6 +10,9 @@ import javafx.application.Platform;
 import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
@@ -20,29 +26,35 @@ import java.util.List;
 
 public class GameApp extends GridPane {
 
-    private final Handler handler;
-    public int parties_won, parties_lost, drawCount;
-    private boolean yourTurn, playable = false;
-    private Tile[][] board;
-    private final List<Combo> combos = new ArrayList<>();
-
+    private final Tile[][] board;
+    private final List<Combo> combos;
     private final GameClient gameClient;
-    private int playerID;
     private final String yourName, opName;
+
+    private boolean yourTurn, playable = false;
+    private Alert results_alert;
+    private int playerID;
+
+    public int parties_won, parties_lost, drawCount;
+    public int cpt = 0;
 
     public GameApp(Socket gameSocket, String name, String opName) {
         this.yourName = name;
         this.opName = opName;
+        combos = new ArrayList<>();
         gameClient = new GameClient(gameSocket);
         gameClient.handShake();
-        setPrefSize(600, 600);
-        handler = new Handler(this);
         board = new Tile[3][3];
         setAlignment(Pos.CENTER);
+        createGUI();
+    }
+
+    private void createGUI() {
         for (int y = 0; y < 3; y++) {
             for (int x = 0; x < 3; x++) {
-                Tile tile = new Tile(handler, x, y);
+                Tile tile = new Tile(this, x, y);
                 GridPane.setHalignment(tile, HPos.CENTER);
+                GridPane.setFillHeight(tile, true);
                 add(tile, x, y);
                 board[x][y] = tile;
             }
@@ -69,7 +81,7 @@ public class GameApp extends GridPane {
 
             for (int i = 0; i < 3; i++) {
                 timeLine.getKeyFrames().add(
-                        new KeyFrame(Duration.seconds(1), new KeyValue(tiles[i].getText().fillProperty(), Color.GREEN)));
+                        new KeyFrame(Duration.seconds(1), new KeyValue(tiles[i].getLabel().textFillProperty(), Color.GREEN)));
             }
             timeLine.setAutoReverse(true);
             timeLine.setCycleCount(4);
@@ -82,44 +94,25 @@ public class GameApp extends GridPane {
     }
 
     public void startNewGame(boolean youWon) {
+        cpt = 0;
         Platform.runLater(() -> {
-            getChildren().clear();
-            combos.clear();
-            board = new Tile[3][3];
-            for (int y = 0; y < 3; y++) {
-                for (int x = 0; x < 3; x++) {
-                    Tile tile = new Tile(handler, x, y);
-                    GridPane.setHalignment(tile, HPos.CENTER);
-                    add(tile, x, y);
-                    board[x][y] = tile;
+            for (Tile[] sub : board) {
+                for (Tile tile : sub) {
+                    tile.reset();
                 }
             }
-            // horizontal
-            for (int y = 0; y < 3; y++) {
-                combos.add(new Combo(board[0][y], board[1][y], board[2][y]));
-            }
-
-            // vertical
-            for (int x = 0; x < 3; x++) {
-                combos.add(new Combo(board[x][0], board[x][1], board[x][2]));
-            }
-
-            // diagonals
-            combos.add(new Combo(board[0][0], board[1][1], board[2][2]));
-            combos.add(new Combo(board[2][0], board[1][1], board[0][2]));
-
             if (!youWon) {
                 waitForYourTurn();
             }
-            setYourTurn(youWon);
-            setPlayable(true);
+            yourTurn = youWon;
+            playable = true;
         });
     }
 
     public void waitForYourTurn() {
         Thread t = new Thread(() -> {
             int[] coor = gameClient.receive();
-            board[coor[0]][coor[1]].play();
+            Platform.runLater(() -> board[coor[0]][coor[1]].play());
         });
         t.start();
     }
@@ -129,21 +122,65 @@ public class GameApp extends GridPane {
         Platform.runLater(() -> getChildren().clear());
     }
 
+    public void sendCoor(int x, int y) {
+        gameClient.sendCoor(x, y);
+    }
+
     public void showResults() {
+        if (results_alert != null && results_alert.isShowing())
+            return;
         Platform.runLater(() -> {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Game");
-            alert.setHeaderText("Results");
+            results_alert = new MyAlert(Alert.AlertType.INFORMATION, Language.GR_H);
             String text = yourName + " : " + parties_won + "\n";
             text += opName + " : " + parties_lost + "\n";
-            text += "Draws : " + drawCount;
-            alert.setContentText(text);
-            alert.show();
+            text += Language.DRAWS.getValue() + drawCount;
+            results_alert.setContentText(text);
+            results_alert.show();
         });
+    }
+
+    public boolean NothingHappened() {
+        for (Combo c : combos) {
+            if (!c.isComplete()) continue;
+            playable = false;
+            boolean youWon = c.getTiles()[0].getValue().equals("X");
+            if (youWon)
+                parties_won++;
+            else
+                parties_lost++;
+            drawLine(c.getTiles(), youWon);
+            return false;
+        }
+        if (cpt == 9) {
+            startNewGame(drawCount % 2 == (playerID - 1));
+            drawCount++;
+            showResults();
+            return false;
+        }
+        return true;
+    }
+
+    // LOGIC
+    static class Combo {
+        private final Tile[] tiles;
+
+        public Combo(Tile... tiles) {
+            this.tiles = tiles;
+        }
+
+        public boolean isComplete() {
+            return !tiles[0].getValue().isEmpty() && tiles[0].getValue().equals(tiles[1].getValue())
+                    && tiles[1].getValue().equals(tiles[2].getValue());
+        }
+
+        public Tile[] getTiles() {
+            return tiles;
+        }
     }
 
     // CLIENT CONNECTION
     class GameClient {
+
         private Socket gameSocket;
         private DataInputStream dataIn;
         private DataOutputStream dataOut;
@@ -214,18 +251,6 @@ public class GameApp extends GridPane {
         this.yourTurn = yourTurn;
     }
 
-    public Tile[][] getBoard() {
-        return board;
-    }
-
-    public List<Combo> getCombo() {
-        return combos;
-    }
-
-    public GameClient getCSC() {
-        return gameClient;
-    }
-
     public boolean isYourTurn() {
         return yourTurn;
     }
@@ -234,15 +259,4 @@ public class GameApp extends GridPane {
         return playable;
     }
 
-    public void setPlayable(boolean playable) {
-        this.playable = playable;
-    }
-
-    public int getDrawCount() {
-        return drawCount;
-    }
-
-    public int getPlayerID() {
-        return playerID;
-    }
 }

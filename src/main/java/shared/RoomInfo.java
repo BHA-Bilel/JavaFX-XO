@@ -1,12 +1,14 @@
 package shared;
 
 import java.io.Serializable;
+import java.util.List;
 
 public class RoomInfo implements Serializable {
 
     public final int room_id;
-    public final String host_name;
-    public final int room_players;
+    public int room_players;
+    public String host_name;
+    public List<String> ip;
 
     public RoomInfo(int room_id, String host_name, int room_players) {
         this.room_id = room_id;
@@ -14,4 +16,8 @@ public class RoomInfo implements Serializable {
         this.room_players = room_players;
     }
 
+    public RoomInfo(List<String> ip, int room_id) {
+        this.ip = ip;
+        this.room_id = room_id;
+    }
 }
