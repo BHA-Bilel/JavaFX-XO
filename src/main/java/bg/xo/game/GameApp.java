@@ -1,6 +1,5 @@
 package bg.xo.game;
 
-import bg.xo.MainApp;
 import bg.xo.lang.Language;
 import bg.xo.popup.MyAlert;
 import javafx.animation.KeyFrame;
@@ -10,9 +9,6 @@ import javafx.application.Platform;
 import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
@@ -60,17 +56,14 @@ public class GameApp extends GridPane {
             }
         }
 
-        // horizontal
         for (int y = 0; y < 3; y++) {
             combos.add(new Combo(board[0][y], board[1][y], board[2][y]));
         }
 
-        // vertical
         for (int x = 0; x < 3; x++) {
             combos.add(new Combo(board[x][0], board[x][1], board[x][2]));
         }
 
-        // diagonals
         combos.add(new Combo(board[0][0], board[1][1], board[2][2]));
         combos.add(new Combo(board[2][0], board[1][1], board[0][2]));
     }
@@ -160,7 +153,6 @@ public class GameApp extends GridPane {
         return true;
     }
 
-    // LOGIC
     static class Combo {
         private final Tile[] tiles;
 
@@ -178,7 +170,6 @@ public class GameApp extends GridPane {
         }
     }
 
-    // CLIENT CONNECTION
     class GameClient {
 
         private Socket gameSocket;
@@ -244,8 +235,6 @@ public class GameApp extends GridPane {
             return coor;
         }
     }
-
-    // GETTERS SETTERS
 
     public void setYourTurn(boolean yourTurn) {
         this.yourTurn = yourTurn;

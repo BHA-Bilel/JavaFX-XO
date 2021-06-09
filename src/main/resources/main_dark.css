@@ -108,12 +108,6 @@
 	-fx-background-color: #3498DB;
 	-fx-text-fill: white;
 }
-/*
-.button:hover {
-	-fx-border-color : -fx-my-color-highlighted;
-	-fx-background-color: -fx-my-color-highlighted;
-	-fx-text-fill: -fx-my-font-color-highlighted;
-}*/
 
 .take-place {
 	-fx-border-color : #3CB371;
@@ -179,6 +173,10 @@
 .kick .jfx-rippler {
 	-jfx-rippler-radius : 50.0;
 	-jfx-rippler-fill : #b71234;
+}
+
+.jfx-radio-button {
+	-fx-text-fill: -fx-my-font-color;
 }
 
 .jfx-check-box {

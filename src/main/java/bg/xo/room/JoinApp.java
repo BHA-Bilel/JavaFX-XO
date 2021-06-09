@@ -20,7 +20,8 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import shared.MainRequest;
-import shared.RoomInfo;
+import shared.LocalRoomInfo;
+import shared.OnlineRoomInfo;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -32,7 +33,7 @@ import java.util.*;
 public class JoinApp extends VBox {
 
     private final JoinClient joinClient;
-    private Map<String, RoomInfo> rooms;
+    private Map<String, LocalRoomInfo> rooms;
     private FeaturingGP featuringGP;
     private JFXTextField username;
     private final MainApp mainApp;
@@ -54,7 +55,7 @@ public class JoinApp extends VBox {
         joinClient = new JoinClient(joinSocket);
     }
 
-    public JoinApp(MainApp mainApp, String username, Map<String, RoomInfo> rooms) {
+    public JoinApp(MainApp mainApp, String username, Map<String, LocalRoomInfo> rooms) {
         super(20);
         this.mainApp = mainApp;
         this.rooms = rooms;
@@ -79,7 +80,6 @@ public class JoinApp extends VBox {
         VBox username_vb = new VBox();
         username_vb.setAlignment(Pos.CENTER);
         username_vb.getChildren().add(this.username);
-//        username_vb.styleProperty().bind(Bindings.concat("-fx-padding: ", MainApp.paddingProperty.asString()));
 
         featuringGP = new FeaturingGP();
 
@@ -95,21 +95,21 @@ public class JoinApp extends VBox {
         refreshButton.textProperty().bind(Language.REFRESH);
         refreshButton.setMinSize(JFXButton.USE_PREF_SIZE, JFXButton.USE_PREF_SIZE);
         refreshButton.setOnAction(e -> {
-            MyAlert.prevent_user_interactions();
-            if (MainApp.online_mode.isSelected()) {
+            MyAlert.show_alert("HOLD");
+            if (MainApp.online.isSelected()) {
                 joinClient.askForMore();
             } else {
                 searchLocalRooms();
             }
         });
         bottom_hb.getChildren().addAll(return_home, refreshButton);
-        if (!MainApp.online_mode.isSelected()) {
+        if (MainApp.local.isSelected()) {
             nextButton = new JFXButton();
             nextButton.getStyleClass().add("take-place");
             nextButton.textProperty().bind(Language.NEXT);
             nextButton.setMinSize(JFXButton.USE_PREF_SIZE, JFXButton.USE_PREF_SIZE);
             nextButton.setOnAction(e -> {
-                MyAlert.prevent_user_interactions();
+                MyAlert.show_alert("HOLD");
                 featuringGP.getChildren().clear();
                 show_next_local_rooms();
             });
@@ -131,10 +131,10 @@ public class JoinApp extends VBox {
 
     private void show_next_local_rooms() {
         int i = 0;
-        Iterator<Map.Entry<String, RoomInfo>> iterator = rooms.entrySet().iterator();
-        Map<String, RoomInfo> temp = new HashMap<>();
+        Iterator<Map.Entry<String, LocalRoomInfo>> iterator = rooms.entrySet().iterator();
+        Map<String, LocalRoomInfo> temp = new HashMap<>();
         while (i < 5 && iterator.hasNext()) {
-            Map.Entry<String, RoomInfo> entry = iterator.next();
+            Map.Entry<String, LocalRoomInfo> entry = iterator.next();
             temp.put(entry.getKey(), entry.getValue());
             iterator.remove();
             i++;
@@ -147,12 +147,12 @@ public class JoinApp extends VBox {
             remove_next_shortcut();
         }
         featuringGP.refresh(temp);
-        MyAlert.allow_user_interactions();
+        MyAlert.hide_alert("HOLD");
     }
 
     public void closeJoinApp() {
         remove_shortcuts();
-        if (MainApp.online_mode.isSelected())
+        if (MainApp.online.isSelected())
             joinClient.closeConn();
         Platform.runLater(() -> getChildren().clear());
     }
@@ -160,7 +160,7 @@ public class JoinApp extends VBox {
     public synchronized void returnHome(boolean exception) {
         if (returned) return;
         returned = true;
-        MyAlert.prevent_user_interactions();
+        MyAlert.show_alert("HOLD");
         closeJoinApp();
         Platform.runLater(() -> mainApp.returnHomeApp(exception));
 
@@ -196,7 +196,6 @@ public class JoinApp extends VBox {
         MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN));
     }
 
-    // networking
     class JoinClient {
 
         private Socket socket;
@@ -215,9 +214,9 @@ public class JoinApp extends VBox {
                 objOut.writeInt(MainRequest.JOIN.ordinal());
                 objOut.flush();
                 int list_size = objIn.readInt();
-                List<RoomInfo> list = new ArrayList<>();
+                List<OnlineRoomInfo> list = new ArrayList<>();
                 for (int i = 0; i < list_size; i++) {
-                    list.add((RoomInfo) objIn.readObject());
+                    list.add((OnlineRoomInfo) objIn.readObject());
                 }
                 Platform.runLater(() -> featuringGP.refresh(list));
             } catch (IOException | ClassNotFoundException ex) {
@@ -233,13 +232,13 @@ public class JoinApp extends VBox {
                     objOut.writeBoolean(true);
                     objOut.flush();
                     int list_size = objIn.readInt();
-                    List<RoomInfo> list = new ArrayList<>();
+                    List<OnlineRoomInfo> list = new ArrayList<>();
                     for (int i = 0; i < list_size; i++) {
-                        list.add((RoomInfo) objIn.readObject());
+                        list.add((OnlineRoomInfo) objIn.readObject());
                     }
                     Platform.runLater(() -> {
                         featuringGP.refresh(list);
-                        MyAlert.allow_user_interactions();
+                        MyAlert.hide_alert("HOLD");
                     });
                 } catch (IOException | ClassNotFoundException e) {
                     returnHome(true);
@@ -249,7 +248,7 @@ public class JoinApp extends VBox {
         }
 
         public void attemptJoin(int roomID, String username) {
-            MyAlert.prevent_user_interactions();
+            MyAlert.show_alert("HOLD");
             Socket roomSocket = new Socket();
             Thread online_join = new Thread(() -> {
                 try {
@@ -266,19 +265,19 @@ public class JoinApp extends VBox {
                         alert.show();
                     });
                 } finally {
-                    MyAlert.allow_user_interactions();
+                    MyAlert.hide_alert("HOLD");
                 }
             });
             online_join.start();
         }
 
         public void attemptJoin(String ip, int roomID, String username) {
-            MyAlert.prevent_user_interactions();
+            MyAlert.show_alert("HOLD");
             Socket roomSocket = new Socket();
             Thread local_join = new Thread(() -> {
                 try {
-                    roomSocket.connect(new InetSocketAddress(ip.substring(1), roomID), MainApp.LOCAL_TIMEOUT);
-                    RoomApp roomApp = new RoomApp(mainApp, JoinApp.this, roomSocket, String.valueOf(roomID), username);
+                    roomSocket.connect(new InetSocketAddress(ip, roomID), MainApp.LOCAL_TIMEOUT);
+                    RoomApp roomApp = new RoomApp(mainApp, JoinApp.this, ip, roomSocket, username);
                     Platform.runLater(() -> mainApp.setRoomApp(roomApp));
                 } catch (IOException e) {
                     try {
@@ -290,7 +289,7 @@ public class JoinApp extends VBox {
                         alert.show();
                     });
                 } finally {
-                    MyAlert.allow_user_interactions();
+                    MyAlert.hide_alert("HOLD");
                 }
             });
             local_join.start();
@@ -312,7 +311,6 @@ public class JoinApp extends VBox {
         }
     }
 
-    // GUI
     class FeaturingGP extends GridPane {
         private final Label emptyLabel;
 
@@ -328,9 +326,9 @@ public class JoinApp extends VBox {
             GridPane.setHalignment(emptyLabel, HPos.CENTER);
         }
 
-        public void refresh(List<RoomInfo> infos) {
+        public void refresh(List<OnlineRoomInfo> infos) {
             int row = 0, column = 0;
-            for (RoomInfo info : infos) {
+            for (OnlineRoomInfo info : infos) {
                 Label room_label = new Label(info.host_name);
                 Label room_players = new Label(info.room_players + " / " + MainApp.BG_GAME.players + Language.PLAYERS.getValue());
                 JFXButton join = new JFXButton();
@@ -339,7 +337,7 @@ public class JoinApp extends VBox {
                         new KeyCodeCombination(keycodes.get(row), KeyCombination.CONTROL_DOWN), join::fire);
                 join.setMinSize(JFXButton.USE_PREF_SIZE, JFXButton.USE_PREF_SIZE);
                 join.setOnAction(e -> {
-                    if (!MainApp.validUsername(username.getText()))
+                    if (!MainApp.valid_username(username.getText()))
                         return;
                     joinClient.attemptJoin(info.room_id, username.getText());
                 });
@@ -361,9 +359,9 @@ public class JoinApp extends VBox {
             }
         }
 
-        public void refresh(Map<String, RoomInfo> infos) {
+        public void refresh(Map<String, LocalRoomInfo> infos) {
             int row = 0, column = 0;
-            for (Map.Entry<String, RoomInfo> entry : infos.entrySet()) {
+            for (Map.Entry<String, LocalRoomInfo> entry : infos.entrySet()) {
                 Label room_label = new Label(entry.getValue().host_name);
                 Label room_players = new Label(entry.getValue().room_players + " / " + MainApp.BG_GAME.players + Language.PLAYERS.getValue());
                 JFXButton join = new JFXButton();
@@ -372,9 +370,9 @@ public class JoinApp extends VBox {
                         new KeyCodeCombination(keycodes.get(row), KeyCombination.CONTROL_DOWN), join::fire);
                 join.setMinSize(JFXButton.USE_PREF_SIZE, JFXButton.USE_PREF_SIZE);
                 join.setOnAction(e -> {
-                    if (!MainApp.validUsername(username.getText()))
+                    if (!MainApp.valid_username(username.getText()))
                         return;
-                    joinClient.attemptJoin(entry.getKey(), entry.getValue().room_id, username.getText());
+                    joinClient.attemptJoin(entry.getKey().substring(1), entry.getValue().room_id, username.getText());
                 });
                 GridPane.setHalignment(room_label, HPos.CENTER);
                 featuringGP.add(room_label, column, row);

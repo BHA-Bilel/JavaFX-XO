@@ -19,6 +19,7 @@ public class MyChoiceDialog {
         );
         choiceDialog.titleProperty().bind(title);
         choiceDialog.headerTextProperty().bind(header);
+        choiceDialog.contentTextProperty().bind(content);
         choiceDialog.getDialogPane().getStylesheets().add(
                 MyChoiceDialog.class.getResource(MainApp.CURRENT_THEME.replace("/main_", "/alert_")).toExternalForm());
     }

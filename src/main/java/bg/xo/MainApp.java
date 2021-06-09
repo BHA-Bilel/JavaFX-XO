@@ -11,8 +11,8 @@ import bg.xo.room.RoomApp;
 import bg.xo.server.local.LocalClient;
 import bg.xo.server.room.RoomServer;
 import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXRadioButton;
 import com.jfoenix.controls.JFXTextField;
-import com.jfoenix.controls.JFXToggleButton;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -20,16 +20,19 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.css.CssMetaData;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.SnapshotParameters;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ButtonBar.ButtonData;
+import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -39,47 +42,53 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.controlsfx.control.Notifications;
 import shared.Game;
+import shared.LocalRoomInfo;
 import shared.MainRequest;
-import shared.RoomInfo;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.image.RenderedImage;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 
 public class MainApp extends Application {
 
-    public static String CURRENT_VERSION;
-
+    public static final String CURRENT_VERSION = "1.0";
+    private static Path PROP_PATH, UN_PATH;
     public static RoomServer roomServer;
-    private Runnable connectRunnable;
+    private Runnable online_setup_runnable;
     public static String ONLINE_IP;
     public static String MULTICAST_IP;
     public static int ONLINE_PORT, ONLINE_GAME_PORT, ONLINE_TIMEOUT, LOCAL_TIMEOUT, JOINERS_PORT, HOSTERS_PORT;
 
     public static final String[] themes = new String[]{"/main_light.css", "/main_dark.css"};
+    public static File[] notif_themes = new File[2];
     public static String USERNAME, PREF_MODE, CURRENT_THEME;
 
     public static Stage stage;
     public static final Game BG_GAME = Game.XO;
     public static StringProperty GAME_NAME;
-    public static JFXToggleButton online_mode;
+    public static JFXRadioButton online, local;
     public static DoubleProperty fontProperty, spacingProperty, paddingProperty;
 
     private BorderPane root;
     private VBox center;
-    private JFXTextField username;
+    private JFXTextField username, room_id;
     private Menu game_menu;
     private JFXButton host, join_rooms, join_specific;
-    private boolean valid;
 
     private volatile boolean main_shortcuts_activated = false;
     private JoinApp joinApp;
@@ -93,17 +102,9 @@ public class MainApp extends Application {
     public void start(Stage primaryStage) {
         stage = primaryStage;
         Assets.init_resolution();
-        get_properties();
-        GAME_NAME = new SimpleStringProperty();
-        GAME_NAME.bind(Language.XO);
-        stage.titleProperty().bind(GAME_NAME);
-        stage.setWidth(Assets.width / 2);
-        stage.setHeight(Assets.height / 2);
-        stage.setMaximized(true);
-        stage.setOnCloseRequest(e -> release_ressources());
-        createGUI();
-        MyAlert.post_init();
-        connectRunnable = () -> {
+        Language.init();
+        init_properties();
+        online_setup_runnable = () -> {
             try {
                 Socket listen = new Socket();
                 listen.connect(new InetSocketAddress(ONLINE_IP, ONLINE_PORT), ONLINE_TIMEOUT);
@@ -115,13 +116,11 @@ public class MainApp extends Application {
                         ONLINE_GAME_PORT = dataIn.readInt();
                     } catch (NullPointerException e) {
                         Alert alert = new MyAlert(AlertType.INFORMATION, Language.unav(), Language.GS_NA_C);
-                        alert.setOnHiding(value -> System.exit(1));
                         alert.show();
                         setup_local_multiplayer();
                     }
                 } catch (IOException e) {
                     Alert alert = new MyAlert(AlertType.INFORMATION, Language.unav(), Language.GS_NA_C);
-                    alert.setOnHiding(value -> System.exit(1));
                     alert.show();
                     setup_local_multiplayer();
                 }
@@ -130,123 +129,133 @@ public class MainApp extends Application {
                 } catch (IOException ignore) {
                 }
                 Platform.runLater(() -> {
-                    LocalClient.stop_local();
-                    MyAlert.close_connect_alert();
+                    enable_gui();
+                    MyAlert.hide_alert("ONLINE");
                     add_join_shortcut();
+                    Notifications notif = Notifications.create()
+                            .title(MainApp.GAME_NAME.getValue()).text(Language.ONLINE_SETUP_SUCCESS.getValue())
+                            .owner(stage).hideCloseButton();
+                    notif.show();
                 });
             } catch (IOException e) {
                 Platform.runLater(() -> {
-                    MyAlert.close_connect_alert();
-                    Alert alert = new MyAlert(AlertType.WARNING, Language.CR_MS_H, Language.CR_MS_C);
+                    MyAlert.hide_alert("ONLINE");
+                    Alert alert = new MyAlert(AlertType.WARNING, Language.ONLINE_SETUP_FAIL_H, Language.ONLINE_SETUP_FAIL_C);
                     ButtonType retry = new ButtonType(Language.RETRY.getValue());
-                    ButtonType enter_new = new ButtonType(Language.ENTER_IP_PORT.getValue());
-                    ButtonType cancel1 = new ButtonType(Language.CANCEL.getValue(), ButtonData.CANCEL_CLOSE);
-                    alert.getButtonTypes().setAll(retry, enter_new, cancel1);
+                    ButtonType cancel = new ButtonType(Language.CANCEL.getValue(), ButtonData.CANCEL_CLOSE);
+                    alert.getButtonTypes().setAll(retry, cancel);
                     Optional<ButtonType> res = alert.showAndWait();
-                    if (res.isEmpty() || res.get() == cancel1) {
-                        online_mode.setSelected(false);
-                        return;
-                    }
-                    if (res.get() == retry) {
-                        MyAlert.show_connect_alert();
-                        reachServer();
-                    } else if (res.get() == enter_new) {
-                        valid = false;
-                        while (!valid) {
-                            TextInputDialog ip_dialog = new MyTextInputDialog(Language.IP_H, ONLINE_IP);
-                            Optional<String> result = ip_dialog.showAndWait();
-                            if (result.isPresent()) {
-                                if (valid_ip(result.get())) {
-                                    ONLINE_IP = result.get();
-                                    valid = true;
-                                }
-                            } else {
-                                online_mode.setSelected(false);
-                                return;
-                            }
-                        }
-                        valid = false;
-                        while (!valid) {
-                            TextInputDialog port_dialog = new MyTextInputDialog(Language.PORT_H, String.valueOf(ONLINE_PORT));
-                            Optional<String> result = port_dialog.showAndWait();
-                            if (result.isPresent()) {
-                                try {
-                                    ONLINE_PORT = Integer.parseInt(result.get());
-                                    if (ONLINE_PORT < 65535 && ONLINE_PORT > 0)
-                                        valid = true;
-                                } catch (NumberFormatException ignore) {
-                                }
-                            } else {
-                                online_mode.setSelected(false);
-                                return;
-                            }
-                        }
-                        updateOnineIpPort();
-                        MyAlert.show_connect_alert();
+                    if (res.isEmpty() || res.get() == cancel) {
+                        online.setSelected(false);
+                    } else if (res.get() == retry) {
+                        MyAlert.show_alert("ONLINE");
                         reachServer();
                     }
                 });
             }
         };
+        GAME_NAME = new SimpleStringProperty();
+        GAME_NAME.bind(Language.XO);
+        stage.titleProperty().bind(GAME_NAME);
+        stage.setWidth(Assets.width / 2);
+        stage.setHeight(Assets.height / 2);
+        stage.setMaximized(true);
+        stage.setOnCloseRequest(e -> release_ressources());
+        createGUI();
+        post_initialization();
+    }
+
+    private void post_initialization() {
+        setup_notif_css();
+        MyAlert.post_init();
         if (isFirstTime()) {
-//            todo don't forget to set to true in config file BEFORE CREATING ZIPS
+            disable_gui();
+            Language.first_timer();
             MyAlert.first_timer(this, 1);
         } else {
+            Notifications notif = Notifications.create()
+                    .title(MainApp.GAME_NAME.getValue()).text(Language.WELCOME_BACK.getValue())
+                    .owner(stage).hideCloseButton();
+            notif.show();
             setup_pref_mode();
-            Platform.runLater(() -> {
-                Notifications notif = Notifications.create()
-                        .title(MainApp.GAME_NAME.getValue()).text(Language.WELCOME_BACK.getValue())
-                        .owner(stage).hideCloseButton();
-                notif.show();
-            });
         }
     }
 
     public void setup_pref_mode() {
-        if (online_mode.isSelected()) {
-            if (PREF_MODE.equals("LOCAL"))
-                online_mode.setSelected(false);
-            else setup_online_multiplayer();
+        if (PREF_MODE.equals("LOCAL")) {
+            local.setSelected(true);
+        } else if (PREF_MODE.equals("ONLINE")) {
+            online.setSelected(true);
         } else {
-            if (PREF_MODE.equals("ONLINE"))
-                online_mode.setSelected(true);
-            else setup_local_multiplayer();
+            disable_gui();
         }
     }
 
+    private void disable_gui() {
+        host.setDisable(true);
+        join_rooms.setDisable(true);
+        join_specific.setDisable(true);
+        room_id.setDisable(true);
+    }
+
+    private void enable_gui() {
+        host.setDisable(false);
+        join_rooms.setDisable(false);
+        join_specific.setDisable(false);
+        room_id.setDisable(false);
+    }
+
     private void setup_online_multiplayer() {
-        MyAlert.show_connect_alert();
+        MyAlert.show_alert("ONLINE");
         reachServer();
     }
 
     private void setup_local_multiplayer() {
-        try {
-            LocalClient.init_local(MULTICAST_IP, JOINERS_PORT, HOSTERS_PORT);
-        } catch (IOException ignore) {
-        }
+        MyAlert.show_alert("LOCAL");
+        Thread local_setup = new Thread(() -> {
+            boolean success = LocalClient.init_local(MULTICAST_IP, JOINERS_PORT, HOSTERS_PORT);
+            Platform.runLater(() -> {
+                MyAlert.hide_alert("LOCAL");
+                if (success) {
+                    enable_gui();
+                    Notifications notif = Notifications.create()
+                            .title(MainApp.GAME_NAME.getValue()).text(Language.LOCAL_SETUP_SUCCESS.getValue())
+                            .owner(stage).hideCloseButton();
+                    notif.show();
+                } else {
+                    Alert alert = new MyAlert(AlertType.WARNING, Language.LOCAL_SETUP_FAIL_H, Language.LOCAL_SETUP_FAIL_C);
+                    alert.show();
+                }
+            });
+        });
+        local_setup.start();
     }
 
     public void reachServer() {
-        Thread t = new Thread(connectRunnable);
-        t.start();
+        Thread online_seup = new Thread(online_setup_runnable);
+        online_seup.start();
     }
 
-    // config read begin
-    private boolean isFirstTime() {
-        Properties prop = new Properties();
-        try (InputStream ip = MainApp.class.getResourceAsStream("/config.properties")) {
-            prop.load(ip);
-            return prop.getProperty("FIRST_TIME").equals("true");
+    private void init_properties() {
+        PROP_PATH = Paths.get(System.getProperty("user.home"), ".bg", "." + BG_GAME, "/config.properties");
+        UN_PATH = Paths.get(System.getProperty("user.home"), ".bg", "." + BG_GAME, "/username.txt");
+        try {
+            Files.createDirectories(PROP_PATH.getParent());
         } catch (IOException ignore) {
         }
-        return false;
+        if (!Files.exists(PROP_PATH)) {
+            create_prop_file();
+        }
+        if (!Files.exists(UN_PATH)) {
+            create_un_file();
+        }
+        get_properties();
     }
 
     private void get_properties() {
         Properties prop = new Properties();
-        try (InputStream ip = MainApp.class.getResourceAsStream("/config.properties")) {
+        try (InputStream ip = new FileInputStream(PROP_PATH.toFile())) {
             prop.load(ip);
-            CURRENT_VERSION = prop.getProperty("CURRENT_VERSION");
             ONLINE_IP = prop.getProperty("ONLINE_IP");
             ONLINE_PORT = Integer.parseInt(prop.getProperty("ONLINE_PORT"));
             MULTICAST_IP = prop.getProperty("MULTICAST_IP");
@@ -255,95 +264,183 @@ public class MainApp extends Application {
             ONLINE_TIMEOUT = Integer.parseInt(prop.getProperty("ONLINE_TIMEOUT"));
             LOCAL_TIMEOUT = Integer.parseInt(prop.getProperty("LOCAL_TIMEOUT"));
             CURRENT_THEME = prop.getProperty("THEME");
-            Language.init();
-            Language.load_lang(LANGNAME.values()[Integer.parseInt(prop.getProperty("LANG"))]);
+            Language.load_lang(LANGNAME.valueOf(prop.getProperty("LANG")));
             PREF_MODE = prop.getProperty("PREF_MODE");
-        } catch (IOException ignore) {
+            USERNAME = Files.readString(UN_PATH.toFile().toPath(), StandardCharsets.UTF_8);
+            check_props_integrity();
+        } catch (IOException e) {
+            reset_properties(false);
         }
-        try (FileInputStream fis = new FileInputStream("src/main/resources/username.txt");
-             InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8);
-             BufferedReader reader = new BufferedReader(isr)) {
-            USERNAME = reader.readLine();
+    }
+
+    private void check_props_integrity() {
+        boolean valid = valid_ip(ONLINE_IP);
+        if (!valid) {
+            ONLINE_IP = update_property("ONLINE_IP", get_default_property("ONLINE_IP"));
+        }
+        valid = valid_timeout(String.valueOf(ONLINE_TIMEOUT));
+        if (!valid) {
+            ONLINE_TIMEOUT = Integer.parseInt(update_property("ONLINE_TIMEOUT", get_default_property("ONLINE_TIMEOUT")));
+        }
+        valid = valid_timeout(String.valueOf(LOCAL_TIMEOUT));
+        if (!valid) {
+            LOCAL_TIMEOUT = Integer.parseInt(update_property("LOCAL_TIMEOUT", get_default_property("LOCAL_TIMEOUT")));
+        }
+        valid = valid_theme();
+        if (!valid) {
+            CURRENT_THEME = update_property("THEME", get_default_property("THEME"));
+        }
+        valid = valid_pref_mode();
+        if (!valid) {
+            PREF_MODE = update_property("PREF_MODE", get_default_property("PREF_MODE"));
+        }
+        int valid_int;
+        valid_int = valid_mc_ip(MULTICAST_IP);
+        if (valid_int < 0) {
+            MULTICAST_IP = update_property("MULTICAST_IP", get_default_property("MULTICAST_IP"));
+        }
+        valid_int = valid_port(String.valueOf(ONLINE_PORT));
+        if (valid_int < 0) {
+            ONLINE_PORT = Integer.parseInt(update_property("ONLINE_PORT", get_default_property("ONLINE_PORT")));
+        }
+        valid_int = valid_port(String.valueOf(JOINERS_PORT));
+        if (valid_int < 0) {
+            JOINERS_PORT = Integer.parseInt(update_property("JOINERS_PORT", get_default_property("JOINERS_PORT")));
+        }
+        valid_int = valid_port(String.valueOf(HOSTERS_PORT));
+        if (valid_int < 0) {
+            HOSTERS_PORT = Integer.parseInt(update_property("HOSTERS_PORT", get_default_property("HOSTERS_PORT")));
+        }
+    }
+
+    private boolean in_default_settings() {
+        Properties prop = new Properties();
+        try (InputStream ip = MainApp.class.getResourceAsStream("/def_config.properties")) {
+            prop.load(ip);
+            if (!ONLINE_IP.equals(prop.getProperty("ONLINE_IP"))) return false;
+            if (ONLINE_PORT != Integer.parseInt(prop.getProperty("ONLINE_PORT"))) return false;
+            if (!MULTICAST_IP.equals(prop.getProperty("MULTICAST_IP"))) return false;
+            if (JOINERS_PORT != Integer.parseInt(prop.getProperty("JOINERS_PORT"))) return false;
+            if (HOSTERS_PORT != Integer.parseInt(prop.getProperty("HOSTERS_PORT"))) return false;
+            if (ONLINE_TIMEOUT != Integer.parseInt(prop.getProperty("ONLINE_TIMEOUT"))) return false;
+            if (LOCAL_TIMEOUT != Integer.parseInt(prop.getProperty("LOCAL_TIMEOUT"))) return false;
+        } catch (IOException e) {
+            return false;
+        }
+        return true;
+    }
+
+    private void reset_properties(boolean restore) {
+        restore_default_prop();
+        update_property("FIRST_TIME", "false");
+        if (restore) {
+            update_property("THEME", CURRENT_THEME);
+            update_property("LANG", Language.LANG_NAME.toString());
+            online.setSelected(false);
+            local.setSelected(false);
+        }
+        get_properties();
+    }
+
+    private void restore_default_prop() {
+        Properties def_prop = new Properties();
+        try (InputStream def = MainApp.class.getResourceAsStream("/def_config.properties")) {
+            def_prop.load(def);
+            Properties curr_prop = new Properties();
+            try (InputStream curr = new FileInputStream(PROP_PATH.toFile())) {
+                curr_prop.load(curr);
+                Set<String> keys = def_prop.stringPropertyNames();
+                for (String key : keys) {
+                    curr_prop.setProperty(key, def_prop.getProperty(key));
+                }
+                curr_prop.store(new OutputStreamWriter(new FileOutputStream(PROP_PATH.toFile())), null);
+            }
         } catch (IOException ignore) {
         }
     }
-    // config read end
 
-    // config write begin
-    public void first_time_done() {
-        Properties prop = new Properties();
-        String fname = "src/main/resources/config.properties";
-        try (InputStream ip = MainApp.class.getResourceAsStream("/config.properties")) {
-            prop.load(ip);
-            prop.setProperty("FIRST_TIME", "false");
-            prop.store(new FileOutputStream(fname), null);
+    private void create_prop_file() {
+        try (InputStream stream = getClass().getClassLoader().getResourceAsStream("def_config.properties")) {
+            Files.copy(stream, PROP_PATH);
         } catch (IOException ignore) {
         }
-        setup_pref_mode();
+    }
+
+    private void create_un_file() {
+        try (InputStream stream = getClass().getClassLoader().getResourceAsStream("def_un.txt")) {
+            Files.copy(stream, UN_PATH);
+        } catch (IOException ignore) {
+        }
+    }
+
+    private boolean isFirstTime() {
+        Properties prop = new Properties();
+        try (InputStream ip = new FileInputStream(PROP_PATH.toFile())) {
+            prop.load(ip);
+            return prop.getProperty("FIRST_TIME").equals("true");
+        } catch (IOException ignore) {
+        }
+        return false;
     }
 
     private static void save_new_username(String username) {
         USERNAME = username;
         try (OutputStreamWriter writer =
-                     new OutputStreamWriter(new FileOutputStream("src/main/resources/username.txt"), StandardCharsets.UTF_8)) {
+                     new OutputStreamWriter(new FileOutputStream(UN_PATH.toFile()), StandardCharsets.UTF_8)) {
             writer.write(username);
         } catch (IOException ignore) {
         }
     }
 
-    public void update_theme(String NEW_THEME) {
-        CURRENT_THEME = NEW_THEME;
+    public String update_property(String key, String value) {
         Properties prop = new Properties();
-        String fname = "src/main/resources/config.properties";
-        try (InputStream ip = MainApp.class.getResourceAsStream("/config.properties")) {
+        try (InputStream ip = new FileInputStream(PROP_PATH.toFile())) {
             prop.load(ip);
-            prop.setProperty("THEME", NEW_THEME);
-            prop.store(new FileOutputStream(fname), null);
+            prop.setProperty(key, value);
+            prop.store(new OutputStreamWriter(new FileOutputStream(PROP_PATH.toFile())), null);
         } catch (IOException ignore) {
         }
+        return value;
+    }
+
+    private String get_default_property(String key) {
+        Properties prop = new Properties();
+        try (InputStream ip = new FileInputStream(PROP_PATH.toFile())) {
+            prop.load(ip);
+            return prop.getProperty(key);
+        } catch (IOException ignore) {
+        }
+        return null;
+    }
+
+    public void update_theme(String NEW_THEME, File notif_temp) {
+        CURRENT_THEME = NEW_THEME;
+        update_property("THEME", NEW_THEME);
         stage.getScene().getStylesheets().clear();
         stage.getScene().getStylesheets().add(MainApp.class.getResource(CURRENT_THEME).toExternalForm());
-        stage.getScene().getStylesheets().add(MainApp.class.getResource(CURRENT_THEME.replace("/main_", "/notif_")).toExternalForm());
+        stage.getScene().getStylesheets().add(notif_temp.toURI().toString());
+
         if (roomApp != null) {
             roomApp.updateChatTheme();
         }
         MyAlert.update_alerts_theme();
     }
 
-    private void update_lang_prop() {
-        Properties prop = new Properties();
-        String fname = "src/main/resources/config.properties";
-        try (InputStream ip = MainApp.class.getResourceAsStream("/config.properties")) {
-            prop.load(ip);
-            prop.setProperty("LANG", String.valueOf(Language.LANG_NAME.ordinal()));
-            prop.store(new FileOutputStream(fname), null);
-        } catch (IOException ignore) {
+    public static boolean valid_username(String username) {
+        if (username.isEmpty()) {
+            Alert alert = new MyAlert(AlertType.ERROR, Language.UN_H1, Language.UN_C1);
+            alert.show();
+            return false;
+        } else if (username.length() > 20) {
+            Alert alert = new MyAlert(AlertType.ERROR, Language.UN_H2, Language.UN_C2);
+            alert.show();
+            return false;
         }
-    }
-
-    private void update_pref_mode(String mode) {
-        Properties prop = new Properties();
-        String fname = "src/main/resources/config.properties";
-        try (InputStream ip = MainApp.class.getResourceAsStream("/config.properties")) {
-            prop.load(ip);
-            prop.setProperty("PREF_MODE", mode);
-            prop.store(new FileOutputStream(fname), null);
-        } catch (IOException ignore) {
+        if (!username.equals(USERNAME)) {
+            save_new_username(username);
         }
+        return true;
     }
-
-    private void updateOnineIpPort() {
-        Properties prop = new Properties();
-        String fname = "src/main/resources/config.properties";
-        try (InputStream ip = MainApp.class.getResourceAsStream("/config.properties")) {
-            prop.load(ip);
-            prop.setProperty("SERVER_IP", ONLINE_IP);
-            prop.setProperty("PORT", Integer.toString(ONLINE_PORT));
-            prop.store(new FileOutputStream(fname), null);
-        } catch (IOException ignore) {
-        }
-    }
-    // config write end
 
     private boolean valid_ip(String ip) {
         java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?<!\\d|\\d\\.)"
@@ -352,6 +449,48 @@ public class MainApp extends Application {
                 .matcher(ip);
         String result = m.find() ? m.group() : null;
         return result != null;
+    }
+
+
+    private int valid_mc_ip(String ip) {
+        boolean valid_ip = valid_ip(ip);
+        if (!valid_ip) return -1;
+        int first = Integer.parseInt(ip.split("\\.")[0]);
+        valid_ip = first >= 224 && first <= 239;
+        return valid_ip ? 1 : -2;
+    }
+
+    private int valid_port(String port) {
+        int roomID;
+        try {
+            roomID = Integer.parseInt(port);
+            if (roomID <= 0 || roomID > 65535) {
+                return -1;
+            }
+        } catch (NumberFormatException ex) {
+            return -2;
+        }
+        return roomID;
+    }
+
+    private boolean valid_timeout(String timeout) {
+        try {
+            int time = Integer.parseInt(timeout);
+            return time >= 100 && time < 10000;
+        } catch (NumberFormatException ignore) {
+        }
+        return false;
+    }
+
+    private boolean valid_theme() {
+        for (String theme : themes) {
+            if (CURRENT_THEME.equals(theme)) return true;
+        }
+        return false;
+    }
+
+    private boolean valid_pref_mode() {
+        return PREF_MODE.equals("NONE") || PREF_MODE.equals("ONLINE") || PREF_MODE.equals("LOCAL");
     }
 
     public void createGUI() {
@@ -374,35 +513,39 @@ public class MainApp extends Application {
         scene.setOnMousePressed(e -> root.requestFocus());
         setup_shotcuts();
         stage.show();
-        setup_notif_css();
     }
 
     private void setup_notif_css() {
+        // workaround because controlsfx notifications don't have any properties to bind
+        int curr_theme = 0, i = 0;
         for (String css : themes) {
-            String notif_css_file = "src/main/resources" + css.replace("main", "notif");
-            StringBuilder notif_css = new StringBuilder();
-            try (FileInputStream fis = new FileInputStream(notif_css_file);
-                 InputStreamReader isr = new InputStreamReader(fis);
-                 BufferedReader reader = new BufferedReader(isr)) {
+            if (CURRENT_THEME.equals(css)) curr_theme = i;
+
+            StringBuilder text = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(
+                            getClass().getClassLoader().getResourceAsStream(css.replace("/main", "notif"))))) {
                 String line;
-                boolean first_line = true;
                 while ((line = reader.readLine()) != null) {
-                    if (line.contains("-fx-font-size:")) {
-                        line = "    -fx-font-size: " + fontProperty.intValue() + "px;";
-                    }
-                    if (first_line) {
-                        notif_css.append(line);
-                        first_line = false;
-                    } else notif_css.append("\n").append(line);
+                    text.append(line).append("\n");
                 }
             } catch (IOException ignore) {
             }
-            try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(notif_css_file))) {
-                writer.write(notif_css.toString());
+            String notif_css = text.toString();
+            notif_css = notif_css.replaceAll("-fx-font-size:;", "-fx-font-size: " + fontProperty.intValue() + "px;");
+            File temp = new File(css.replace("main", "notif"));
+            temp.delete();
+            try {
+                temp.createNewFile();
+                BufferedWriter bw = new BufferedWriter(new FileWriter(temp));
+                bw.write(notif_css);
+                bw.close();
+                notif_themes[i] = temp;
+                i++;
             } catch (IOException ignore) {
             }
         }
-        stage.getScene().getStylesheets().add(MainApp.class.getResource(CURRENT_THEME.replace("/main_", "/notif_")).toExternalForm());
+        stage.getScene().getStylesheets().add(notif_themes[curr_theme].toURI().toString());
     }
 
     private MenuBar createTopGUI() {
@@ -417,15 +560,6 @@ public class MainApp extends Application {
         switch_theme.textProperty().bind(Language.SWITCH_THEME);
         switch_theme.setAccelerator(KeyCombination.keyCombination("F2"));
 
-        Menu language = new Menu();
-        language.textProperty().bind(Language.LANGUAGE);
-        MenuItem english = new MenuItem();
-        english.textProperty().bind(Language.ENGLISH);
-        MenuItem french = new MenuItem();
-        french.textProperty().bind(Language.FRENCH);
-        MenuItem arabic = new MenuItem();
-        arabic.textProperty().bind(Language.ARABIC);
-
         Menu shortcuts = new Menu();
         shortcuts.textProperty().bind(Language.SHORTCUTS);
         MenuItem general_shortcuts = new MenuItem();
@@ -439,17 +573,37 @@ public class MainApp extends Application {
         MenuItem game_shortcuts = new MenuItem();
         game_shortcuts.textProperty().bind(Language.GAME);
 
-        Menu about_menu = new Menu();
-        about_menu.textProperty().bind(Language.ABOUT);
-        MenuItem help = new MenuItem();
-        help.textProperty().bind(Language.HELP);
-        help.setAccelerator(KeyCombination.keyCombination("F1"));
-        MenuItem about = new MenuItem();
-        about.textProperty().bind(Language.ABOUT_ME);
-        MenuItem feedback = new MenuItem();
-        feedback.textProperty().bind(Language.FEEDBACK);
-        MenuItem copyright = new MenuItem();
-        copyright.textProperty().bind(Language.COPYRIGHT);
+        Menu network = new Menu();
+        network.textProperty().bind(Language.NETWORK);
+        Menu online_net = new Menu();
+        online_net.textProperty().bind(Language.ONLINE);
+        MenuItem ch_on_ip = new MenuItem();
+        ch_on_ip.textProperty().bind(Language.CH_ON_IP);
+        MenuItem ch_on_port = new MenuItem();
+        ch_on_port.textProperty().bind(Language.CH_ON_PORT);
+        MenuItem ch_on_to = new MenuItem();
+        ch_on_to.textProperty().bind(Language.CH_ON_TO);
+        Menu local_net = new Menu();
+        local_net.textProperty().bind(Language.LOCAL);
+        MenuItem ch_mc_ip = new MenuItem();
+        ch_mc_ip.textProperty().bind(Language.CH_MC_IP);
+        MenuItem ch_jn_port = new MenuItem();
+        ch_jn_port.textProperty().bind(Language.CH_JN_PORT);
+        MenuItem ch_hs_port = new MenuItem();
+        ch_hs_port.textProperty().bind(Language.CH_HS_PORT);
+        MenuItem ch_lc_to = new MenuItem();
+        ch_lc_to.textProperty().bind(Language.CH_LC_TO);
+        MenuItem restore_defaults = new MenuItem();
+        restore_defaults.textProperty().bind(Language.RESTORE);
+
+        Menu language = new Menu();
+        language.textProperty().bind(Language.LANGUAGE);
+        MenuItem english = new MenuItem();
+        english.textProperty().bind(Language.ENGLISH);
+        MenuItem french = new MenuItem();
+        french.textProperty().bind(Language.FRENCH);
+        MenuItem arabic = new MenuItem();
+        arabic.textProperty().bind(Language.ARABIC);
 
         Menu download_update = new Menu();
         download_update.textProperty().bind(Language.DOWNLOAD_UPDATE);
@@ -466,6 +620,18 @@ public class MainApp extends Application {
         MenuItem du_coinche = new MenuItem();
         du_coinche.textProperty().bind(Language.COINCHE);
 
+        Menu about_menu = new Menu();
+        about_menu.textProperty().bind(Language.ABOUT);
+        MenuItem help = new MenuItem();
+        help.textProperty().bind(Language.HELP);
+        help.setAccelerator(KeyCombination.keyCombination("F1"));
+        MenuItem about = new MenuItem();
+        about.textProperty().bind(Language.ABOUT_ME);
+        MenuItem feedback = new MenuItem();
+        feedback.textProperty().bind(Language.FEEDBACK);
+        MenuItem copyright = new MenuItem();
+        copyright.textProperty().bind(Language.COPYRIGHT);
+
         game_menu = new Menu();
         game_menu.textProperty().bind(Language.GAME);
         game_menu.setDisable(true);
@@ -478,17 +644,20 @@ public class MainApp extends Application {
 
         shortcuts.getItems().addAll(general_shortcuts, main_shortcuts, join_shortcuts, room_shortcuts, game_shortcuts);
         window.getItems().addAll(switch_fs, switch_theme, shortcuts);
+        online_net.getItems().addAll(ch_on_ip, ch_on_port, ch_on_to);
+        local_net.getItems().addAll(ch_mc_ip, ch_jn_port, ch_hs_port, ch_lc_to);
+        network.getItems().addAll(online_net, local_net, restore_defaults);
         language.getItems().addAll(english, french, arabic);
         download_update.getItems().addAll(du_xo, du_checkers, du_chess, du_connect4, du_dominoes, du_coinche);
         about_menu.getItems().addAll(about, help, feedback, copyright);
         game_menu.getItems().addAll(view_score, end_game);
-        top.getMenus().addAll(window, language, download_update, about_menu, game_menu);
+        top.getMenus().addAll(window, network, language, download_update, about_menu, game_menu);
 
         switch_fs.setOnAction(e -> stage.setFullScreen(!stage.isFullScreen()));
 
         switch_theme.setOnAction(e -> {
-            if (CURRENT_THEME.equals(themes[0])) update_theme(themes[1]);
-            else update_theme(themes[0]);
+            if (CURRENT_THEME.equals(themes[0])) update_theme(themes[1], notif_themes[1]);
+            else update_theme(themes[0], notif_themes[0]);
         });
 
         general_shortcuts.setOnAction(e -> {
@@ -523,19 +692,166 @@ public class MainApp extends Application {
             alert.show();
         });
 
+        ch_on_ip.setOnAction(e -> {
+            TextInputDialog ip_dialog = new MyTextInputDialog(Language.CH_ON_IP_H, ONLINE_IP);
+            Optional<String> result = ip_dialog.showAndWait();
+            if (result.isPresent()) {
+                if (valid_ip(result.get())) {
+                    ONLINE_IP = update_property("ONLINE_IP", result.get());
+                    if (online.isSelected()) {
+                        setup_online_multiplayer();
+                    }
+                } else {
+                    Alert alert = new MyAlert(AlertType.ERROR, Language.INV_IP_H, Language.INV_IP_C);
+                    alert.show();
+                }
+            }
+        });
+
+        ch_on_port.setOnAction(e -> {
+            TextInputDialog port_dialog = new MyTextInputDialog(Language.CH_PORT_H, String.valueOf(ONLINE_PORT));
+            Optional<String> result = port_dialog.showAndWait();
+            if (result.isPresent()) {
+                if (valid_port(result.get()) < 0) {
+                    Alert alert = new MyAlert(AlertType.ERROR, Language.INV_PORT_H, Language.INV_PORT_C);
+                    alert.show();
+                } else {
+                    ONLINE_PORT = Integer.parseInt(update_property("ONLINE_PORT", result.get()));
+                    if (online.isSelected()) {
+                        setup_online_multiplayer();
+                    }
+                }
+            }
+        });
+
+        ch_on_to.setOnAction(e -> {
+            TextInputDialog timeout_dialog = new MyTextInputDialog(Language.CH_TO_H, String.valueOf(ONLINE_TIMEOUT));
+            Optional<String> result = timeout_dialog.showAndWait();
+            if (result.isPresent()) {
+                if (valid_timeout(result.get())) {
+                    ONLINE_TIMEOUT = Integer.parseInt(update_property("ONLINE_TIMEOUT", result.get()));
+                } else {
+                    Alert alert = new MyAlert(AlertType.ERROR, Language.INV_TO_H, Language.INV_TO_C);
+                    alert.show();
+                }
+            }
+        });
+
+        ch_mc_ip.setOnAction(e -> {
+            TextInputDialog ip_dialog = new MyTextInputDialog(Language.CH_MC_IP_H, MULTICAST_IP);
+            Optional<String> result = ip_dialog.showAndWait();
+            if (result.isPresent()) {
+                int valid = valid_mc_ip(result.get());
+                switch (valid) {
+                    case -1: {
+                        Alert alert = new MyAlert(AlertType.ERROR, Language.INV_IP_H, Language.INV_IP_C);
+                        alert.show();
+                        return;
+                    }
+                    case -2: {
+                        Alert alert = new MyAlert(AlertType.ERROR, Language.INV_MC_IP_H, Language.INV_MC_IP_C);
+                        alert.show();
+                        return;
+                    }
+                    default: {
+                        MULTICAST_IP = update_property("MULTICAST_IP", result.get());
+                        if (local.isSelected()) {
+                            LocalClient.stop_local();
+                            setup_local_multiplayer();
+                        }
+                    }
+                }
+            }
+        });
+
+        ch_jn_port.setOnAction(e -> {
+            TextInputDialog port_dialog = new MyTextInputDialog(Language.CH_PORT_H, String.valueOf(JOINERS_PORT));
+            Optional<String> result = port_dialog.showAndWait();
+            if (result.isPresent()) {
+                if (valid_port(result.get()) < 0) {
+                    Alert alert = new MyAlert(AlertType.ERROR, Language.INV_PORT_H, Language.INV_PORT_C);
+                    alert.show();
+                } else {
+                    if (String.valueOf(HOSTERS_PORT).equals(result.get())) {
+                        Alert alert = new MyAlert(AlertType.ERROR, Language.SAME_JH_H, Language.SAME_JH_C1);
+                        alert.show();
+                    } else {
+                        JOINERS_PORT = Integer.parseInt(update_property("JOINERS_PORT", result.get()));
+                        if (local.isSelected()) {
+                            LocalClient.stop_local();
+                            setup_local_multiplayer();
+                        }
+                    }
+                }
+            }
+        });
+
+        ch_hs_port.setOnAction(e -> {
+            TextInputDialog port_dialog = new MyTextInputDialog(Language.CH_PORT_H, String.valueOf(HOSTERS_PORT));
+            Optional<String> result = port_dialog.showAndWait();
+            if (result.isPresent()) {
+                if (valid_port(result.get()) < 0) {
+                    Alert alert = new MyAlert(AlertType.ERROR, Language.INV_PORT_H, Language.INV_PORT_C);
+                    alert.show();
+                } else {
+                    if (String.valueOf(JOINERS_PORT).equals(result.get())) {
+                        Alert alert = new MyAlert(AlertType.ERROR, Language.SAME_JH_H, Language.SAME_JH_C2);
+                        alert.show();
+                    } else {
+                        HOSTERS_PORT = Integer.parseInt(update_property("HOSTERS_PORT", result.get()));
+                        if (local.isSelected()) {
+                            LocalClient.stop_local();
+                            setup_local_multiplayer();
+                        }
+                    }
+                }
+            }
+        });
+
+        ch_lc_to.setOnAction(e -> {
+            TextInputDialog timeout_dialog = new MyTextInputDialog(Language.CH_TO_H, String.valueOf(LOCAL_TIMEOUT));
+            Optional<String> result = timeout_dialog.showAndWait();
+            if (result.isPresent()) {
+                if (valid_timeout(result.get())) {
+                    LOCAL_TIMEOUT = Integer.parseInt(update_property("LOCAL_TIMEOUT", result.get()));
+                } else {
+                    Alert alert = new MyAlert(AlertType.ERROR, Language.INV_TO_H, Language.INV_TO_C);
+                    alert.show();
+                }
+            }
+        });
+
+        restore_defaults.setOnAction(e -> {
+            if (in_default_settings()) {
+                Alert alert = new MyAlert(AlertType.INFORMATION, Language.ALREADY_DEFAULT_H, Language.ALREADY_DEFAULT_C);
+                alert.show();
+                return;
+            }
+            Alert alert = new MyAlert(AlertType.INFORMATION, Language.RESTORE_H, Language.RESTORE_C);
+            ButtonType restore = new ButtonType(Language.RESTORE_BT.getValue());
+            ButtonType cancel = new ButtonType(Language.CANCEL.getValue(), ButtonData.CANCEL_CLOSE);
+            alert.getButtonTypes().setAll(restore, cancel);
+            Optional<ButtonType> res = alert.showAndWait();
+            if (res.isPresent() && res.get() == restore) {
+                MyAlert.show_alert("HOLD");
+                reset_properties(true);
+                MyAlert.hide_alert("HOLD");
+            }
+        });
+
         english.setOnAction(e -> {
             Language.load_lang(LANGNAME.ENGLISH);
-            update_lang_prop();
+            update_property("LANG", "ENGLISH");
         });
 
         french.setOnAction(e -> {
             Language.load_lang(LANGNAME.FRENCH);
-            update_lang_prop();
+            update_property("LANG", "FRENCH");
         });
 
         arabic.setOnAction(e -> {
             Language.load_lang(LANGNAME.ARABIC);
-            update_lang_prop();
+            update_property("LANG", "ARABIC");
         });
 
         du_xo.setOnAction(e -> {
@@ -622,7 +938,7 @@ public class MainApp extends Application {
             alert.getButtonTypes().setAll(get_help, ok);
             Optional<ButtonType> res = alert.showAndWait();
             if (res.isPresent() && res.get() == get_help)
-                open_url("https://github.com/BHA-Bilel/JavaFX-XO#how-to-play"); // todo change in other bg
+                open_url("https://github.com/BHA-Bilel/JavaFX-XO#how-to-play");
         });
 
         feedback.setOnAction(e -> {
@@ -690,10 +1006,10 @@ public class MainApp extends Application {
         username_vb.setAlignment(Pos.CENTER);
         username_vb.getChildren().add(username);
         HBox top_hbox = createTopHBox();
-        HBox toggle_hb = create_toggle();
+        VBox toggle_vb = create_toggle();
         HBox hb2 = createBottomHBox();
-        hb2.visibleProperty().bind(online_mode.selectedProperty());
-        center.getChildren().addAll(username_vb, top_hbox, toggle_hb, hb2);
+        hb2.visibleProperty().bind(online.selectedProperty());
+        center.getChildren().addAll(username_vb, top_hbox, toggle_vb, hb2);
         return center;
     }
 
@@ -711,13 +1027,13 @@ public class MainApp extends Application {
         join_rooms.setMinSize(JFXButton.USE_PREF_SIZE, JFXButton.USE_PREF_SIZE);
 
         host.setOnAction(e -> {
-            if (!validUsername(username.getText()))
+            if (!valid_username(username.getText()))
                 return;
             HostRoom();
         });
 
         join_rooms.setOnAction(e -> {
-            if (!validUsername(username.getText()))
+            if (!valid_username(username.getText()))
                 return;
             JoinPublicRooms();
         });
@@ -726,31 +1042,37 @@ public class MainApp extends Application {
         return hb;
     }
 
-    public HBox create_toggle() {
-        HBox hb = new HBox();
-        hb.spacingProperty().bind(spacingProperty);
-        hb.styleProperty().bind(Bindings.concat("-fx-padding: ", paddingProperty.asString()));
-        hb.setAlignment(Pos.CENTER);
-        Label local = new Label();
-        String local_style = local.getStyle() + "-fx-text-fill: #3CB371;";
-        local.setStyle(local_style);
+    public VBox create_toggle() {
+        VBox mode_vb = new VBox();
+        mode_vb.spacingProperty().bind(spacingProperty);
+        mode_vb.styleProperty().bind(Bindings.concat("-fx-padding: ", paddingProperty.asString()));
+        mode_vb.setAlignment(Pos.CENTER);
+        local = new JFXRadioButton();
         local.textProperty().bind(Language.LOCAL);
-        local.setMinSize(Label.USE_PREF_SIZE, Label.USE_PREF_SIZE);
-        online_mode = new JFXToggleButton();
-        online_mode.textProperty().bind(Language.ONLINE);
-        online_mode.setMinSize(JFXToggleButton.USE_PREF_SIZE, JFXToggleButton.USE_PREF_SIZE);
-        online_mode.selectedProperty().addListener((ob, oldValue, newValue) -> {
-            if (newValue) {
-                local.setStyle(local_style.replace("-fx-text-fill: #3CB371;", "-fx-text-fill: #FFFFFF;"));
+        local.setMinSize(JFXRadioButton.USE_PREF_SIZE, JFXRadioButton.USE_PREF_SIZE);
+        online = new JFXRadioButton();
+        online.textProperty().bind(Language.ONLINE);
+        online.setMinSize(JFXRadioButton.USE_PREF_SIZE, JFXRadioButton.USE_PREF_SIZE);
+
+        ToggleGroup toggleGroup = new ToggleGroup();
+        local.setToggleGroup(toggleGroup);
+        online.setToggleGroup(toggleGroup);
+        toggleGroup.selectedToggleProperty().addListener((observable, oldVal, newVal) -> {
+            if (oldVal == local) {
+                LocalClient.stop_local();
+            }
+            if (newVal == online) {
                 setup_online_multiplayer();
-            } else {
-                local.setStyle(local_style);
-                remove_join_shortcut();
+            } else if (newVal == local) {
+                if (oldVal == online)
+                    remove_join_shortcut();
                 setup_local_multiplayer();
+            } else {
+                disable_gui();
             }
         });
-        hb.getChildren().addAll(local, online_mode);
-        return hb;
+        mode_vb.getChildren().addAll(local, online);
+        return mode_vb;
     }
 
     private HBox createBottomHBox() {
@@ -759,7 +1081,7 @@ public class MainApp extends Application {
         hb.styleProperty().bind(Bindings.concat("-fx-padding: ", paddingProperty.asString()));
         hb.setAlignment(Pos.CENTER);
 
-        JFXTextField room_id = new JFXTextField();
+        room_id = new JFXTextField();
         room_id.setPrefColumnCount(5);
         room_id.promptTextProperty().bind(Language.ROOM_ID);
         room_id.setMinSize(TextField.USE_PREF_SIZE, TextField.USE_PREF_SIZE);
@@ -773,7 +1095,7 @@ public class MainApp extends Application {
                 try {
                     String data = (String) Toolkit.getDefaultToolkit()
                             .getSystemClipboard().getData(DataFlavor.stringFlavor);
-                    if (validRoomID(data, true) > 0)
+                    if (valid_port(data) > 0)
                         room_id.setText(data);
                 } catch (UnsupportedFlavorException | IOException ignore) {
                 }
@@ -781,65 +1103,32 @@ public class MainApp extends Application {
         });
 
         join_specific.setOnAction(e -> {
-            if (!validUsername(username.getText()))
+            if (!valid_username(username.getText()))
                 return;
-            int roomID = validRoomID(room_id.getText(), false);
-            if (roomID < 0)
+            if (room_id.getText().isEmpty()) {
+                Alert alert = new MyAlert(AlertType.ERROR, Language.RID_H1, Language.RID_C1);
+                alert.show();
                 return;
-            JoinSpecificRoom(String.valueOf(roomID));
+            }
+            int roomID = valid_port(room_id.getText());
+            switch (roomID) {
+                case -2:
+                case -3: {
+                    Alert alert = new MyAlert(AlertType.ERROR, Language.RID_H2, Language.RID_C2);
+                    alert.show();
+                    return;
+                }
+                default: {
+                    JoinSpecificRoom(String.valueOf(roomID));
+                }
+            }
         });
-
         hb.getChildren().addAll(room_id, join_specific);
         return hb;
     }
 
-    public static boolean validUsername(String username) {
-        if (username.isEmpty()) {
-            Alert alert = new MyAlert(AlertType.WARNING, Language.UN_H1, Language.UN_C1);
-            alert.show();
-            return false;
-        } else if (username.length() > 20) {
-            Alert alert = new MyAlert(AlertType.WARNING, Language.UN_H2, Language.UN_C2);
-            alert.show();
-            return false;
-        }
-        if (!username.equals(USERNAME)) {
-            save_new_username(username);
-        }
-        return true;
-    }
-
-    private int validRoomID(String room_id, boolean supress_alerts) {
-        int roomID = -1;
-        if (room_id.isEmpty()) {
-            if (supress_alerts)
-                return roomID;
-            Alert alert = new MyAlert(AlertType.WARNING, Language.RID_H1, Language.RID_C1);
-            alert.show();
-        } else if (room_id.length() > 5) {
-            return roomID;
-        } else {
-            try {
-                roomID = Integer.parseInt(room_id);
-                if (roomID > 65535) {
-                    roomID = -1;
-                    if (supress_alerts)
-                        return roomID;
-                    Alert alert = new MyAlert(AlertType.WARNING, Language.RID_H2, Language.RID_C2);
-                    alert.show();
-                }
-            } catch (NumberFormatException ex) {
-                if (supress_alerts)
-                    return roomID;
-                Alert alert = new MyAlert(AlertType.WARNING, Language.RID_H2, Language.RID_C2);
-                alert.show();
-            }
-        }
-        return roomID;
-    }
-
     public void start_migration() {
-        MyAlert.migration_started();
+        MyAlert.show_alert("MIGRATION");
         Thread local_host = new Thread(() -> {
             try {
                 roomServer = new RoomServer();
@@ -847,32 +1136,31 @@ public class MainApp extends Application {
                 roomSocket.connect(new InetSocketAddress("0.0.0.0", roomServer.getPort()), LOCAL_TIMEOUT);
                 roomApp.send_new_room_server(RoomServer.getHostRoomInfo());
                 roomApp.discardOldRoom();
-                RoomApp roomApp = new RoomApp(this, null, roomSocket, String.valueOf(roomServer.getPort()), USERNAME);
+                RoomApp roomApp = new RoomApp(this, null, "0.0.0.0", roomSocket, USERNAME);
                 Platform.runLater(() -> setRoomApp(roomApp));
             } catch (IOException e) {
                 roomServer = null;
                 Platform.runLater(() -> {
-                    Alert alert = new MyAlert(AlertType.WARNING, Language.HOST_H, Language.CHK_INTERNET);
-                    alert.setOnHidden(hidden -> reachServer());
+                    Alert alert = new MyAlert(AlertType.WARNING, Language.HOST_H, Language.CHK_LOCAL);
                     alert.show();
                 });
             } finally {
-                MyAlert.migration_finished();
+                MyAlert.hide_alert("MIGRATION");
             }
         });
         local_host.start();
     }
 
-    public void migrate_new_host(RoomInfo roomInfo) {
-        MyAlert.migration_started();
+    public void migrate_new_host(LocalRoomInfo localRoomInfo) {
+        MyAlert.show_alert("MIGRATION");
         Thread local_join = new Thread(() -> {
             boolean connected = false;
-            for (String ip : roomInfo.ip) {
+            for (String ip : localRoomInfo.ip) {
                 try {
                     Socket roomSocket = new Socket();
-                    roomSocket.connect(new InetSocketAddress(ip, roomInfo.room_id), LOCAL_TIMEOUT);
+                    roomSocket.connect(new InetSocketAddress(ip, localRoomInfo.room_id), LOCAL_TIMEOUT);
                     roomApp.discardOldRoom();
-                    RoomApp roomApp = new RoomApp(this, null, roomSocket, String.valueOf(roomInfo.room_id), USERNAME);
+                    RoomApp roomApp = new RoomApp(this, null, ip, roomSocket, USERNAME);
                     Platform.runLater(() -> setRoomApp(roomApp));
                     connected = true;
                     break;
@@ -880,12 +1168,11 @@ public class MainApp extends Application {
                 }
             }
             if (connected) {
-                MyAlert.migration_finished();
+                MyAlert.hide_alert("MIGRATION");
             } else {
                 roomServer = null;
                 Platform.runLater(() -> {
-                    Alert alert = new MyAlert(AlertType.WARNING, Language.HOST_H, Language.CHK_INTERNET);
-                    alert.setOnHidden(hidden -> reachServer());
+                    Alert alert = new MyAlert(AlertType.WARNING, Language.HOST_H, Language.CHK_LOCAL);
                     alert.show();
                 });
             }
@@ -894,8 +1181,8 @@ public class MainApp extends Application {
     }
 
     public void HostRoom() {
-        MyAlert.prevent_user_interactions();
-        if (online_mode.isSelected()) {
+        MyAlert.show_alert("HOLD");
+        if (online.isSelected()) {
             Thread online_host = new Thread(() -> {
                 try (Socket s = new Socket(ONLINE_IP, ONLINE_GAME_PORT);
                      ObjectOutputStream objOut = new ObjectOutputStream(s.getOutputStream());
@@ -924,7 +1211,7 @@ public class MainApp extends Application {
                     }
                 } catch (IOException e) {
                     Platform.runLater(() -> {
-                        Alert alert = new MyAlert(AlertType.WARNING, Language.CR_MS_H, Language.CHK_INTERNET);
+                        Alert alert = new MyAlert(AlertType.WARNING, Language.COMM_ERROR_H, Language.CHK_INTERNET);
                         alert.setOnHidden(hidden -> reachServer());
                         alert.show();
                     });
@@ -937,13 +1224,12 @@ public class MainApp extends Application {
                     roomServer = new RoomServer();
                     Socket roomSocket = new Socket();
                     roomSocket.connect(new InetSocketAddress("0.0.0.0", roomServer.getPort()), LOCAL_TIMEOUT);
-                    roomApp = new RoomApp(this, null, roomSocket, String.valueOf(roomServer.getPort()), username.getText());
+                    roomApp = new RoomApp(this, null, "0.0.0.0", roomSocket, username.getText());
                     Platform.runLater(() -> setRoomApp(roomApp));
                 } catch (IOException e) {
                     roomServer = null;
                     Platform.runLater(() -> {
-                        Alert alert = new MyAlert(AlertType.WARNING, Language.HOST_H, Language.CHK_INTERNET);
-                        alert.setOnHidden(hidden -> reachServer());
+                        Alert alert = new MyAlert(AlertType.WARNING, Language.HOST_H, Language.CHK_LOCAL);
                         alert.show();
                     });
                 }
@@ -953,7 +1239,7 @@ public class MainApp extends Application {
     }
 
     public void JoinSpecificRoom(String roomID) {
-        MyAlert.prevent_user_interactions();
+        MyAlert.show_alert("HOLD");
         Socket roomSocket = new Socket();
         Thread online_join = new Thread(() -> {
             try {
@@ -966,6 +1252,7 @@ public class MainApp extends Application {
                 } catch (IOException ignore) {
                 }
                 Platform.runLater(() -> {
+                    MyAlert.hide_alert("HOLD");
                     Alert alert = new MyAlert(AlertType.WARNING, Language.ROOM_H, Language.ROOM_C);
                     alert.setOnHidden(hidden -> reachServer());
                     alert.show();
@@ -976,8 +1263,8 @@ public class MainApp extends Application {
     }
 
     public void JoinPublicRooms() {
-        MyAlert.prevent_user_interactions();
-        if (online_mode.isSelected()) {
+        MyAlert.show_alert("HOLD");
+        if (online.isSelected()) {
             Thread online_join = new Thread(() -> {
                 try {
                     Socket joinSocket = new Socket();
@@ -986,7 +1273,8 @@ public class MainApp extends Application {
                     Platform.runLater(() -> setJoinApp(joinApp));
                 } catch (IOException e) {
                     Platform.runLater(() -> {
-                        Alert alert = new MyAlert(AlertType.WARNING, Language.CR_MS_H, Language.CHK_INTERNET);
+                        MyAlert.hide_alert("HOLD");
+                        Alert alert = new MyAlert(AlertType.WARNING, Language.COMM_ERROR_H, Language.CHK_INTERNET);
                         alert.setOnHidden(hidden -> reachServer());
                         alert.show();
                     });
@@ -995,7 +1283,7 @@ public class MainApp extends Application {
             online_join.start();
         } else {
             Thread local_join = new Thread(() -> {
-                Map<String, RoomInfo> rooms = LocalClient.send_join_req();
+                Map<String, LocalRoomInfo> rooms = LocalClient.send_join_req();
                 joinApp = new JoinApp(this, username.getText(), rooms);
                 Platform.runLater(() -> setJoinApp(joinApp));
             });
@@ -1023,11 +1311,11 @@ public class MainApp extends Application {
         root.setCenter(center);
         setup_shotcuts();
         root.requestFocus();
-        MyAlert.allow_user_interactions();
+        MyAlert.hide_alert("HOLD");
         if (exception) {
             Alert alert = new MyAlert(AlertType.WARNING, Language.COMM_ERROR_H, Language.COMM_ERROR_C);
             alert.setOnHidden(hidden -> {
-                if (online_mode.isSelected())
+                if (online.isSelected())
                     reachServer();
             });
             alert.show();
@@ -1039,8 +1327,8 @@ public class MainApp extends Application {
         main_shortcuts_activated = true;
         stage.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.H, KeyCombination.CONTROL_DOWN), host::fire);
         stage.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.J, KeyCombination.CONTROL_DOWN), join_rooms::fire);
-        stage.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN), () -> online_mode.setSelected(true));
-        stage.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.L, KeyCombination.CONTROL_DOWN), () -> online_mode.setSelected(false));
+        stage.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN), () -> online.setSelected(true));
+        stage.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.L, KeyCombination.CONTROL_DOWN), () -> local.setSelected(true));
     }
 
     private void add_join_shortcut() {
@@ -1064,27 +1352,26 @@ public class MainApp extends Application {
     public void setJoinApp(JoinApp joinApp) {
         this.joinApp = joinApp;
         root.setCenter(joinApp);
-        // because for some reason username textfield of join stays black on dark mode
         stage.getScene().getStylesheets().clear();
         stage.getScene().getStylesheets().add(MainApp.class.getResource(CURRENT_THEME).toExternalForm());
         remove_shortcuts();
         joinApp.setup_shortcuts();
         root.requestFocus();
-        MyAlert.allow_user_interactions();
+        MyAlert.hide_alert("HOLD");
     }
 
     public void setRoomApp(RoomApp roomApp) {
-        if (online_mode.isSelected()) {
-            update_pref_mode("ONLINE");
+        if (online.isSelected()) {
+            update_property("PREF_MODE", "ONLINE");
         } else {
-            update_pref_mode("LOCAL");
+            update_property("PREF_MODE", "LOCAL");
         }
         this.roomApp = roomApp;
         root.setCenter(roomApp);
         remove_shortcuts();
         roomApp.setup_shortcuts();
         root.requestFocus();
-        MyAlert.allow_user_interactions();
+        MyAlert.hide_alert("HOLD");
     }
 
     public void disable_game_menu() {
@@ -1095,7 +1382,7 @@ public class MainApp extends Application {
         root.setCenter(gameApp);
         roomApp.partial_shortcuts_remove();
         game_menu.setDisable(false);
-        MyAlert.allow_user_interactions();
+        MyAlert.hide_alert("HOLD");
     }
 
 }

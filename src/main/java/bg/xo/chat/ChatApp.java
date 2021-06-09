@@ -8,7 +8,6 @@ import bg.xo.room.RoomApp;
 import com.jfoenix.controls.JFXTextField;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
-import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -78,11 +77,11 @@ public class ChatApp {
 
     private boolean valid_msg(String msg) {
         if (msg.isEmpty()) {
-            Alert alert = new MyAlert(Alert.AlertType.WARNING, stage, Language.CHAT_T, Language.CHAT_H1, Language.CHAT_C1);
+            Alert alert = new MyAlert(Alert.AlertType.ERROR, stage, Language.CHAT_T, Language.CHAT_H1, Language.CHAT_C1);
             alert.show();
             return false;
         } else if (msg.length() > 50) {
-            Alert alert = new MyAlert(Alert.AlertType.WARNING, stage, Language.CHAT_T, Language.CHAT_H2, Language.CHAT_C2);
+            Alert alert = new MyAlert(Alert.AlertType.ERROR, stage, Language.CHAT_T, Language.CHAT_H2, Language.CHAT_C2);
             alert.show();
             return false;
         }
@@ -127,6 +126,7 @@ public class ChatApp {
             String name = room.getName(msg.from);
             nameLabel = new Label(name + " : ");
             nameLabel.getStyleClass().add("name");
+            nameLabel.setMinSize(Label.USE_PREF_SIZE, Label.USE_PREF_SIZE);
             if (latest_from == msg.from) {
                 nameLabel.setVisible(false);
             } else {

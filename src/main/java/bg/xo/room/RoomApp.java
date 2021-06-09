@@ -23,10 +23,9 @@ import javafx.scene.input.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.util.Duration;
 import org.controlsfx.control.Notifications;
 import shared.RoomComm;
-import shared.RoomInfo;
+import shared.LocalRoomInfo;
 import shared.RoomMsg;
 import shared.RoomPosition;
 
@@ -48,7 +47,7 @@ public class RoomApp extends VBox {
     private PlayersGP playersGP;
 
     public int id;
-    private String name;
+    private String host_ip, name;
     private boolean youAreHost, isPublic;
     private volatile boolean returned = false;
 
@@ -63,6 +62,7 @@ public class RoomApp extends VBox {
     private final Semaphore events_mutex = new Semaphore(1, true);
     private volatile boolean room_shortcuts_activated = false;
 
+    // online
     public RoomApp(MainApp mainApp, JoinApp joinApp, Socket roomSocket, String room_id, String name) {
         super(20);
         this.mainApp = mainApp;
@@ -71,6 +71,19 @@ public class RoomApp extends VBox {
         empty_places_buttons = new HashMap<>();
         roomClient = new RoomClient(roomSocket);
         createGUI(room_id);
+        roomClient.handShakeRun(joinApp != null);
+    }
+
+    // local
+    public RoomApp(MainApp mainApp, JoinApp joinApp, String host_ip, Socket roomSocket, String name) {
+        super(20);
+        this.host_ip = host_ip;
+        this.mainApp = mainApp;
+        this.name = name;
+        this.joinApp = joinApp;
+        empty_places_buttons = new HashMap<>();
+        roomClient = new RoomClient(roomSocket);
+        createGUI(null);
         roomClient.handShakeRun(joinApp != null);
     }
 
@@ -96,9 +109,9 @@ public class RoomApp extends VBox {
             Optional<String> result = ch_name_dialog.showAndWait();
             if (result.isPresent()) {
                 if (name.equals(result.get())) {
-                    Alert alert = new MyAlert(AlertType.WARNING, Language.NAME_H, Language.NAME_C);
+                    Alert alert = new MyAlert(AlertType.ERROR, Language.NAME_H, Language.NAME_C);
                     alert.show();
-                } else if (MainApp.validUsername(result.get())) {
+                } else if (MainApp.valid_username(result.get())) {
                     roomClient.request_change_name(result.get());
                 }
             }
@@ -128,7 +141,7 @@ public class RoomApp extends VBox {
         notifications.textProperty().bind(Language.NOTIFICATIONS);
         notifications.setMinSize(JFXCheckBox.USE_PREF_SIZE, JFXCheckBox.USE_PREF_SIZE);
         notifications.setSelected(true);
-        if (MainApp.online_mode.isSelected()) {
+        if (MainApp.online.isSelected()) {
             HBox room_hb = create_room_hb(room_id_str);
             middleHBox.getChildren().addAll(return_home, room_hb, notifications);
         } else
@@ -155,7 +168,7 @@ public class RoomApp extends VBox {
             clipboard.setContent(content);
         });
         room_hb.getChildren().addAll(room_id, copy);
-        room_hb.visibleProperty().bind(MainApp.online_mode.selectedProperty());
+        room_hb.visibleProperty().bind(MainApp.online.selectedProperty());
         return room_hb;
     }
 
@@ -173,7 +186,7 @@ public class RoomApp extends VBox {
         hostHBox.spacingProperty().bind(MainApp.spacingProperty);
         hostHBox.setAlignment(Pos.CENTER);
         HBox privacy_hb = null;
-        if (MainApp.online_mode.isSelected()) privacy_hb = create_privacy_hb();
+        if (MainApp.online.isSelected()) privacy_hb = create_privacy_hb();
         kick = new JFXButton();
         kick.textProperty().bind(Language.KICK_PLAYER);
         kick.setMinSize(JFXButton.USE_PREF_SIZE, JFXButton.USE_PREF_SIZE);
@@ -200,7 +213,7 @@ public class RoomApp extends VBox {
             if (playersGP.canStartGame())
                 roomClient.startGame();
         });
-        if (MainApp.online_mode.isSelected()) hostHBox.getChildren().addAll(privacy_hb, kick, start_game);
+        if (MainApp.online.isSelected()) hostHBox.getChildren().addAll(privacy_hb, kick, start_game);
         else hostHBox.getChildren().addAll(kick, start_game);
 
         hostVBox.getChildren().addAll(host_privileges, hostHBox);
@@ -219,7 +232,7 @@ public class RoomApp extends VBox {
         privacyButton.setMinSize(JFXButton.USE_PREF_SIZE, JFXButton.USE_PREF_SIZE);
         privacyButton.setOnAction(e -> roomClient.change_privacy());
         privacy_hb.getChildren().addAll(privacy_label, privacyButton);
-        privacy_hb.visibleProperty().bind(MainApp.online_mode.selectedProperty());
+        privacy_hb.visibleProperty().bind(MainApp.online.selectedProperty());
         return privacy_hb;
     }
 
@@ -276,7 +289,6 @@ public class RoomApp extends VBox {
         gameApp.showResults();
     }
 
-    // CLIENT CONNECTION
     class RoomClient extends Thread {
 
         private Socket socket;
@@ -295,21 +307,34 @@ public class RoomApp extends VBox {
             }
         }
 
-        public void startChat(int chatPort) {
-            Thread t = new Thread(() -> {
+        public void startChat(String ip, int chatPort) {
+            Thread local_chat = new Thread(() -> {
                 try {
                     Socket chatSocket = new Socket();
-                    chatSocket.connect(new InetSocketAddress(MainApp.ONLINE_IP, chatPort), MainApp.online_mode.isSelected() ? MainApp.ONLINE_TIMEOUT : MainApp.LOCAL_TIMEOUT);
+                    chatSocket.connect(new InetSocketAddress(ip, chatPort), MainApp.LOCAL_TIMEOUT);
                     chatApp = new ChatApp(RoomApp.this, chatSocket);
                 } catch (IOException e) {
                     returnHome(true);
                 }
             });
-            t.start();
+            local_chat.start();
+        }
+
+        public void startChat(int chatPort) {
+            Thread online_chat = new Thread(() -> {
+                try {
+                    Socket chatSocket = new Socket();
+                    chatSocket.connect(new InetSocketAddress(MainApp.ONLINE_IP, chatPort), MainApp.ONLINE_TIMEOUT);
+                    chatApp = new ChatApp(RoomApp.this, chatSocket);
+                } catch (IOException e) {
+                    returnHome(true);
+                }
+            });
+            online_chat.start();
         }
 
         public void handShakeRun(boolean featuring_join) {
-            if (MainApp.online_mode.isSelected()) {
+            if (MainApp.online.isSelected()) {
                 Thread online_thread = new Thread(() -> {
                     try {
                         objOut.writeBoolean(featuring_join);
@@ -325,7 +350,7 @@ public class RoomApp extends VBox {
                             else {
                                 returnHome(false);
                                 Platform.runLater(() -> {
-                                    Alert alert = new MyAlert(AlertType.WARNING, Language.CNT_ACCESS_H, Language.CNT_ACCESS_C);
+                                    Alert alert = new MyAlert(AlertType.ERROR, Language.CNT_ACCESS_H, Language.CNT_ACCESS_C);
                                     alert.show();
                                 });
                             }
@@ -340,8 +365,8 @@ public class RoomApp extends VBox {
                         int playersBeforeYou = objIn.readInt();
                         setRoomPrivacy(objIn.readBoolean());
                         RoomPosition position = RoomPosition.values()[objIn.readInt()];
-                        name = objIn.readUTF(); // after checking for dup names
-                        if (playersBeforeYou == 0) {// You are the first to enter the room (You created the room)
+                        name = objIn.readUTF();
+                        if (playersBeforeYou == 0) {
                             promote();
                         }
                         startChat(chatPort);
@@ -352,7 +377,6 @@ public class RoomApp extends VBox {
                         }
                         roomClient.start();
                     } catch (IOException | ClassNotFoundException e) {
-                        e.printStackTrace();
                         returnHome(true);
                     }
                 });
@@ -366,11 +390,11 @@ public class RoomApp extends VBox {
                         int chatPort = objIn.readInt();
                         int playersBeforeYou = objIn.readInt();
                         RoomPosition position = RoomPosition.values()[objIn.readInt()];
-                        name = objIn.readUTF(); // after checking for dup names
-                        if (playersBeforeYou == 0) {// You are the first to enter the room (You created the room)
+                        name = objIn.readUTF();
+                        if (playersBeforeYou == 0) {
                             promote();
                         }
-                        startChat(chatPort);
+                        startChat(host_ip, chatPort);
                         Platform.runLater(() -> addPlayer(true, id, name, position));
                         for (int i = 0; i < playersBeforeYou; i++) {
                             RoomMsg msg = (RoomMsg) objIn.readObject();
@@ -378,7 +402,6 @@ public class RoomApp extends VBox {
                         }
                         roomClient.start();
                     } catch (IOException | ClassNotFoundException e) {
-                        e.printStackTrace();
                         returnHome(true);
                     }
                 });
@@ -393,12 +416,15 @@ public class RoomApp extends VBox {
                     RoomMsg msg = (RoomMsg) objIn.readObject();
                     switch (RoomComm.values()[msg.comm]) {
                         case GAME_STARTING: {
-                            MyAlert.prevent_user_interactions();
+                            MyAlert.show_alert("HOLD");
                             break;
                         }
                         case GAME_STARTED: {
                             Socket gameSocket = new Socket();
-                            gameSocket.connect(new InetSocketAddress(MainApp.ONLINE_IP, (int) msg.adt_data[0]), MainApp.online_mode.isSelected() ? MainApp.ONLINE_TIMEOUT : MainApp.LOCAL_TIMEOUT);
+                            if (MainApp.online.isSelected())
+                                gameSocket.connect(new InetSocketAddress(MainApp.ONLINE_IP, (int) msg.adt_data[0]), MainApp.online.isSelected() ? MainApp.ONLINE_TIMEOUT : MainApp.LOCAL_TIMEOUT);
+                            else
+                                gameSocket.connect(new InetSocketAddress(host_ip, (int) msg.adt_data[0]), MainApp.online.isSelected() ? MainApp.ONLINE_TIMEOUT : MainApp.LOCAL_TIMEOUT);
                             gameApp = new GameApp(gameSocket, name, playersGP.getOpponentName());
                             Platform.runLater(() -> mainApp.setGameApp(gameApp));
                             break;
@@ -418,7 +444,7 @@ public class RoomApp extends VBox {
                             }
                             break;
                         }
-                        // server sent events
+
                         case TOOK_EMPTY_PLACE: {
                             Platform.runLater(() -> took_empty_place(msg.from, RoomPosition.values()[(int) msg.adt_data[0]]));
                             break;
@@ -456,7 +482,7 @@ public class RoomApp extends VBox {
                             break;
                         }
                         case MIGRATION: {
-                            mainApp.migrate_new_host((RoomInfo) msg.adt_data[0]);
+                            mainApp.migrate_new_host((LocalRoomInfo) msg.adt_data[0]);
                             return;
                         }
                         default: {
@@ -477,7 +503,6 @@ public class RoomApp extends VBox {
             }
         }
 
-        // client sent events: begin
         public void change_privacy() {
             try {
                 RoomMsg msg = new RoomMsg(isPublic ? RoomComm.GO_PRIVATE : RoomComm.GO_PUBLIC);
@@ -498,9 +523,9 @@ public class RoomApp extends VBox {
             }
         }
 
-        public void sendNewRoomServer(RoomInfo roomInfo) {
+        public void sendNewRoomServer(LocalRoomInfo localRoomInfo) {
             try {
-                RoomMsg msg = new RoomMsg(id, RoomComm.MIGRATION, new Object[]{roomInfo});
+                RoomMsg msg = new RoomMsg(id, RoomComm.MIGRATION, new Object[]{localRoomInfo});
                 objOut.writeObject(msg);
                 objOut.flush();
             } catch (IOException e) {
@@ -557,17 +582,16 @@ public class RoomApp extends VBox {
                 returnHome(true);
             }
         }
-        // client sent events: end
     }
 
-    public void send_new_room_server(RoomInfo room_info) {
+    public void send_new_room_server(LocalRoomInfo room_info) {
         roomClient.sendNewRoomServer(room_info);
     }
 
     private void promote() {
         youAreHost = true;
         hostVBox.setDisable(false);
-        if (MainApp.roomServer == null && !MainApp.online_mode.isSelected()) {
+        if (MainApp.roomServer == null && MainApp.local.isSelected()) {
             mainApp.start_migration();
         }
     }
@@ -601,48 +625,42 @@ public class RoomApp extends VBox {
         MainApp.stage.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.T, KeyCombination.CONTROL_DOWN), () -> notifications.setSelected(!notifications.isSelected()));
         MainApp.stage.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.K, KeyCombination.CONTROL_DOWN), kick::fire);
         MainApp.stage.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN), start_game::fire);
-        if (MainApp.online_mode.isSelected()) {
+        if (MainApp.online.isSelected()) {
             MainApp.stage.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.I, KeyCombination.CONTROL_DOWN), copy::fire);
             MainApp.stage.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN), privacyButton::fire);
         }
     }
 
     public void partial_shortcuts_remove() {
-        if (room_shortcuts_activated) {
-            room_shortcuts_activated = false;
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN));
-//        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.H, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.I, KeyCombination.CONTROL_DOWN));
-//        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.T, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN));
-//        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.K, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.DOWN, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.RIGHT, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.UP, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.LEFT, KeyCombination.CONTROL_DOWN));
-//        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN));
-        }
+        if (!room_shortcuts_activated) return;
+        room_shortcuts_activated = false;
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.H, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.I, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.DOWN, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.RIGHT, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.UP, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.LEFT, KeyCombination.CONTROL_DOWN));
     }
 
     public void remove_shortcuts() {
-        if (room_shortcuts_activated) {
-            room_shortcuts_activated = false;
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.H, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.I, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.T, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.K, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.DOWN, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.RIGHT, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.UP, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.LEFT, KeyCombination.CONTROL_DOWN));
-            MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN));
-        }
+        if (!room_shortcuts_activated) return;
+        room_shortcuts_activated = false;
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.H, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.I, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.T, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.K, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.DOWN, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.RIGHT, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.UP, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.LEFT, KeyCombination.CONTROL_DOWN));
+        MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN));
     }
 
     public void closeRoomApp() {
@@ -670,7 +688,7 @@ public class RoomApp extends VBox {
     public synchronized void returnHome(boolean exception) {
         if (returned) return;
         returned = true;
-        MyAlert.prevent_user_interactions();
+        MyAlert.show_alert("HOLD");
         closeRoomApp();
         if (MainApp.roomServer != null && !MainApp.roomServer.all_clients_left())
             MainApp.roomServer.at_migration_finish(mainApp, exception);
@@ -694,7 +712,6 @@ public class RoomApp extends VBox {
         });
     }
 
-    // server sent events: begin
     private void took_empty_place(int id, RoomPosition taken_position) {
         try {
             events_mutex.acquire();
@@ -735,8 +752,6 @@ public class RoomApp extends VBox {
         playersGP.resetReadyStatus();
         showNotification(isKicked ? Language.kicked_notif(username, id == this.id) : username + Language.LEFT_NOTIF.getValue(), "error");
     }
-
-    // server sent events: end
 
     private void checkHost() {
         if (!youAreHost && playersGP.isFirst()) {
@@ -788,7 +803,7 @@ public class RoomApp extends VBox {
             if (players.size() >= enough_players && allReady()) {
                 return true;
             } else {
-                Alert alert = new MyAlert(AlertType.WARNING, Language.CNT_SG_H, players.size() == enough_players ? Language.CNT_SG_C1 : Language.CNT_SG_C2);
+                Alert alert = new MyAlert(AlertType.ERROR, Language.CNT_SG_H, players.size() == enough_players ? Language.CNT_SG_C1 : Language.CNT_SG_C2);
                 alert.show();
                 return false;
             }
@@ -876,10 +891,6 @@ public class RoomApp extends VBox {
                     return null;
                 }
             }
-        }
-
-        private boolean hostLeft() {
-            return false;
         }
 
         private boolean isFirst() {

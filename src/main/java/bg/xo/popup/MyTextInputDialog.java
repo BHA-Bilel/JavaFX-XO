@@ -3,7 +3,6 @@ package bg.xo.popup;
 import bg.xo.MainApp;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.StringProperty;
-import javafx.scene.control.Alert;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 

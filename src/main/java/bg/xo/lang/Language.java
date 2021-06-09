@@ -14,18 +14,17 @@ public class Language {
             LANG_H, LANG_C,
             THEME_H, THEME_C, LIGHT, DARK,
             WELCOME_H, WELCOME_C, WELCOME_BACK,
-            SHORTCUTS_H, SHORTCUTS_C,
+            FINAL_PHASE_H, FINAL_PHASE_C,
             HOLD_H, HOLD_C,
-            CONNECT_H, CONNECT_C,
+            ONLINE_SETUP_H, ONLINE_SETUP_C, ONLINE_SETUP_SUCCESS, ONLINE_SETUP_FAIL_H, ONLINE_SETUP_FAIL_C,
+            LOCAL_SETUP_H, LOCAL_SETUP_C, LOCAL_SETUP_SUCCESS, LOCAL_SETUP_FAIL_H, LOCAL_SETUP_FAIL_C,
             MIGRATION_H1, MIGRATION_C1, MIGRATION_H2, MIGRATION_C2,
             LOCAL, ONLINE,
-            CANCEL, OK, ACCEPT, PREVIOUS, NEXT, DONE,
-            GS_NA_C, CR_MS_H, CR_MS_C,
-            COMM_ERROR_H, COMM_ERROR_C,
+            RETRY, CANCEL, OK, ACCEPT, PREVIOUS, NEXT, DONE,
+            GS_NA_C, COMM_ERROR_H, COMM_ERROR_C,
             CNT_ACCESS_H, CNT_ACCESS_C,
             CNT_SG_H, CNT_SG_C1, CNT_SG_C2,
-            RETRY, ENTER_IP_PORT, IP_H, PORT_H,
-            JOIN_ERROR, GONE_PRIVATE, NO_ROOMS, CHK_INTERNET,
+            JOIN_ERROR, GONE_PRIVATE, NO_ROOMS, CHK_INTERNET, CHK_LOCAL,
 
     WINDOW, SWITCH_FS, SWITCH_THEME,
 
@@ -38,6 +37,16 @@ public class Language {
             G_SH_T, G_SH_H, G_SH_C,
             VIEW_SC, GR_H, DRAWS,
             END_GAME, GE_H, GE_C,
+
+    NETWORK,
+            CH_ON_IP, CH_ON_PORT, CH_ON_TO,
+            CH_MC_IP, CH_JN_PORT, CH_HS_PORT, CH_LC_TO,
+            CH_ON_IP_H, CH_MC_IP_H, CH_PORT_H, CH_TO_H,
+            SAME_JH_H, SAME_JH_C1, SAME_JH_C2,
+            INV_IP_H, INV_IP_C, INV_MC_IP_H, INV_MC_IP_C,
+            INV_PORT_H, INV_PORT_C,
+            INV_TO_H, INV_TO_C,
+            RESTORE, RESTORE_H, RESTORE_C, RESTORE_BT, ALREADY_DEFAULT_H, ALREADY_DEFAULT_C,
 
     LANGUAGE, ENGLISH, FRENCH, ARABIC,
 
@@ -89,32 +98,62 @@ public class Language {
         WELCOME_H = new SimpleStringProperty();
         WELCOME_C = new SimpleStringProperty();
         WELCOME_BACK = new SimpleStringProperty();
-        SHORTCUTS_H = new SimpleStringProperty();
-        SHORTCUTS_C = new SimpleStringProperty();
+        FINAL_PHASE_H = new SimpleStringProperty();
+        FINAL_PHASE_C = new SimpleStringProperty();
         HOLD_H = new SimpleStringProperty();
         HOLD_C = new SimpleStringProperty();
-        CONNECT_H = new SimpleStringProperty();
-        CONNECT_C = new SimpleStringProperty();
+        LOCAL_SETUP_H = new SimpleStringProperty();
+        LOCAL_SETUP_C = new SimpleStringProperty();
+        ONLINE_SETUP_H = new SimpleStringProperty();
+        ONLINE_SETUP_C = new SimpleStringProperty();
+        ONLINE_SETUP_SUCCESS = new SimpleStringProperty();
+        ONLINE_SETUP_FAIL_H = new SimpleStringProperty();
+        ONLINE_SETUP_FAIL_C = new SimpleStringProperty();
+        LOCAL_SETUP_SUCCESS = new SimpleStringProperty();
+        LOCAL_SETUP_FAIL_H = new SimpleStringProperty();
+        LOCAL_SETUP_FAIL_C = new SimpleStringProperty();
         LOCAL = new SimpleStringProperty();
         ONLINE = new SimpleStringProperty();
         CANCEL = new SimpleStringProperty();
         OK = new SimpleStringProperty();
         ACCEPT = new SimpleStringProperty();
         GS_NA_C = new SimpleStringProperty();
-        CR_MS_H = new SimpleStringProperty();
-        CR_MS_C = new SimpleStringProperty();
         RETRY = new SimpleStringProperty();
-        ENTER_IP_PORT = new SimpleStringProperty();
-        IP_H = new SimpleStringProperty();
-        PORT_H = new SimpleStringProperty();
+        NETWORK = new SimpleStringProperty();
+        CH_ON_IP = new SimpleStringProperty();
+        CH_ON_PORT = new SimpleStringProperty();
+        CH_ON_TO = new SimpleStringProperty();
+        CH_MC_IP = new SimpleStringProperty();
+        CH_JN_PORT = new SimpleStringProperty();
+        CH_HS_PORT = new SimpleStringProperty();
+        CH_LC_TO = new SimpleStringProperty();
+        CH_ON_IP_H = new SimpleStringProperty();
+        CH_MC_IP_H = new SimpleStringProperty();
+        CH_PORT_H = new SimpleStringProperty();
+        CH_TO_H = new SimpleStringProperty();
+        SAME_JH_H = new SimpleStringProperty();
+        SAME_JH_C1 = new SimpleStringProperty();
+        SAME_JH_C2 = new SimpleStringProperty();
+        INV_IP_H = new SimpleStringProperty();
+        INV_IP_C = new SimpleStringProperty();
+        INV_MC_IP_H = new SimpleStringProperty();
+        INV_MC_IP_C = new SimpleStringProperty();
+        INV_PORT_H = new SimpleStringProperty();
+        INV_PORT_C = new SimpleStringProperty();
+        INV_TO_H = new SimpleStringProperty();
+        INV_TO_C = new SimpleStringProperty();
+        RESTORE = new SimpleStringProperty();
+        RESTORE_H = new SimpleStringProperty();
+        RESTORE_C = new SimpleStringProperty();
+        RESTORE_BT = new SimpleStringProperty();
+        ALREADY_DEFAULT_H = new SimpleStringProperty();
+        ALREADY_DEFAULT_C = new SimpleStringProperty();
         WINDOW = new SimpleStringProperty();
         SWITCH_FS = new SimpleStringProperty();
         LANGUAGE = new SimpleStringProperty();
         ENGLISH = new SimpleStringProperty();
         FRENCH = new SimpleStringProperty();
         ARABIC = new SimpleStringProperty();
-        //        byte[] bytes = StringUtils.getBytesUtf8(germanString);
-//        String utf8String = StringUtils.newStringUtf8(bytes);
         ARABIC.set("العربية");
         FRENCH.set("Francais");
         ENGLISH.set("English");
@@ -208,6 +247,7 @@ public class Language {
         RID_C2 = new SimpleStringProperty();
         HOST_H = new SimpleStringProperty();
         CHK_INTERNET = new SimpleStringProperty();
+        CHK_LOCAL = new SimpleStringProperty();
         ALL_TAKEN = new SimpleStringProperty();
         ROOM_H = new SimpleStringProperty();
         ROOM_C = new SimpleStringProperty();
@@ -273,7 +313,7 @@ public class Language {
             case FRENCH:
                 return "Vous avez " + no + " messages non lus, ouvrez le chat pour les lire !";
             case ARABIC:
-                return "لديك " + no + " رسائل غير مقروءة ، افتح الدردشة لقراءتها !"; // todo
+                return "لديك " + no + " رسائل غير مقروءة ، افتح الدردشة لقراءتها !";
         }
         return null;
     }
@@ -326,9 +366,9 @@ public class Language {
                 + " لن يستغرق الأمر وقتًا طويلاً!");
         GO_BACK.set("تابع البرنامج التعليمي");
         SKIP_BT.set("تخطي البرنامج التعليمي");
-        LANG_H.set("مرحبا!");
+        LANG_H.set("مرحبا! اي لغة تفضل؟");
         LANG_C.set("الرجاء اختيار لغتك المفضلة للمتابعة ، يمكن دائمًا تغيير هذا لاحقًا");
-        THEME_H.set("اي لغة تفضل؟");
+        THEME_H.set("ما هو الوضع الذي تفضله؟");
         THEME_C.set("اختر بين الوضع الفاتح والداكن لواجهة المستخدم، ويمكن تغيير ذلك لاحقًا");
         LIGHT.set("فاتح");
         DARK.set("داكن");
@@ -336,7 +376,7 @@ public class Language {
         WELCOME_C.set("أهلا! أنا بن حاج عمار بلال ، مطور هذه اللعبة"
                 + "\n"
                 + "\n"
-                + "لعبة تيك تاك تو الخاصة بي ليست لعبة عادية!" // todo change in other bg
+                + "لعبة تيك تاك تو الخاصة بي ليست لعبة عادية!"
                 + "\n"
                 + "يأتي في موضوعين وثلاث لغات"
                 + "\n"
@@ -350,24 +390,32 @@ public class Language {
                 + "للحصول على أفضل تجربة ، لا تنس البحث عن التحديثات من وقت لآخر"
                 + "\n");
         WELCOME_BACK.set("مرحبا بعودتك! :)");
-        SHORTCUTS_H.set("أنت الآن جاهز!");
-        SHORTCUTS_C.set("شكرًا لك على صبرك ، يمكنك الآن بدء اللعب ، استمتع ؛)");
+        FINAL_PHASE_H.set("لتفعيل واجهة المستخدم ، حدد الوضع المحلي أو المتصل");
+        FINAL_PHASE_C.set("شكرا لصبرك ، استمتع! ؛)");
         HOLD_H.set("الرجاء الانتظار...");
         HOLD_C.set("شكرا");
-        CONNECT_H.set("الرجاء الانتظار");
-        CONNECT_C.set("الاتصال بالخادم...");
+        ONLINE_SETUP_H.set("تهيئة الوضع المتصل");
+        ONLINE_SETUP_C.set("جاري الاتصال بالخادم...");
+        LOCAL_SETUP_H.set("تهيئة الوضع المحلي");
+        LOCAL_SETUP_C.set("الرجاء الإنتظار...");
+        ONLINE_SETUP_SUCCESS.set("تم تهيئة الوضع المتصل بنجاح");
+        ONLINE_SETUP_FAIL_H.set("فشل تهيئة الوضع المتصل!");
+        ONLINE_SETUP_FAIL_C.set("تأكد من أنك متصل بالإنترنت ،"
+                + "\n"
+                + "ثم اختر واحدا مما يلي");
+        LOCAL_SETUP_SUCCESS.set("تم تهيئة الوضع المحلي بنجاح");
+        LOCAL_SETUP_FAIL_H.set("فشل تهيئة الوضع المحلي!");
+        LOCAL_SETUP_FAIL_C.set("تأكد من أنك متصل بشبكة محلية ،"
+                + "\n"
+                + "ثم اختر واحدا مما يلي");
+
         LOCAL.set("محلي");
         ONLINE.set("متصل");
         CANCEL.set("إلغاء");
         OK.set("حسنا");
         ACCEPT.set("قبول");
         GS_NA_C.set("يرجى العودة لاحقًا");
-        CR_MS_H.set("تعذر الوصول إلى الخادم!");
-        CR_MS_C.set("تحقق من اتصالك بالإنترنت ، واختر أحد الخيارات التالية");
         RETRY.set("إعادة المحاولة");
-        ENTER_IP_PORT.set("أدخل عنوان IP / المنفذ للخادم");
-        IP_H.set("أدخل عنوان IP الخادم");
-        PORT_H.set("أدخل منفذ الخادم");
         WINDOW.set("النافذة");
         SWITCH_FS.set("تبديل وضع ملء الشاشة");
         SWITCH_THEME.set("تبديل واجهة المستخدم");
@@ -469,11 +517,65 @@ public class Language {
                 + "\nCtrl + E"
                 + "\n         انهاء اللعبة (العودة للغرفة)");
 
+        NETWORK.set("الشبكة");
+        CH_ON_IP.set("تغيير عنوان IP للخادم");
+        CH_ON_PORT.set("تغيير منفذ الخادم");
+        CH_ON_TO.set("تغيير مهلة الإتصال للوضع المتصل");
+        CH_MC_IP.set("تغيير عنوان IP الإرسال المتعدد");
+        CH_JN_PORT.set("تغيير منفذ المنخرطين");
+        CH_HS_PORT.set("تغيير منفذ المضيفين");
+        CH_LC_TO.set("تغيير مهلة الإتصال للوضع المحلي");
+        CH_ON_IP_H.set("أدخل عنوان IP صالح"
+                + "\n"
+                + "\n"
+                + "إذا كنت لا تعرف ما تفعله ، فاترك كل شيء في الإعدادات الافتراضية."
+                + "\n"
+                + "يمكنك دائمًا استعادة الإعدادات الافتراضية في قائمة الشبكة");
+        CH_MC_IP_H.set("أدخل عنوان IP صالح للبث المتعدد"
+                + "\n"
+                + "\n"
+                + "إذا كنت لا تعرف ما تفعله ، فاترك كل شيء في الإعدادات الافتراضية."
+                + "\n"
+                + "يمكنك دائمًا استعادة الإعدادات الافتراضية في قائمة الشبكة");
+        CH_PORT_H.set("أدخل رقم منفذ صالح"
+                + "\n"
+                + "\n"
+                + "إذا كنت لا تعرف ما تفعله ، فاترك كل شيء في الإعدادات الافتراضية."
+                + "\n"
+                + "يمكنك دائمًا استعادة الإعدادات الافتراضية في قائمة الشبكة");
+        CH_TO_H.set("أدخل مهلة صالحة (بالمللي ثانية)"
+                + "\n"
+                + "\n"
+                + "إذا كنت لا تعرف ما تفعله ، فاترك كل شيء في الإعدادات الافتراضية."
+                + "\n"
+                + "يمكنك دائمًا استعادة الإعدادات الافتراضية في قائمة الشبكة");
+        SAME_JH_H.set("لا يمكنك تعيين نفس المنفذ المنخرطين والمضيفين!");
+        SAME_JH_C1.set("هذا المنفذ محجوز لمنفذ المنخرطين ، يرجى إدخال منفذ آخر");
+        SAME_JH_C2.set("هذا المنفذ محجوز لمنفذ المضيفين ، يرجى إدخال منفذ آخر");
+        INV_IP_H.set("عنوان IP غير صالح!");
+        INV_IP_C.set("عناوين IP الصالحة تكون بالشكل: x.x.x.x"
+                + "\n"
+                + "حيث x بين (0-255)");
+        INV_MC_IP_H.set("عنوان IP غير صالح للإرسال المتعدد!");
+        INV_MC_IP_C.set("تبدأ عناوين IP الصالحة للإرسال المتعدد برقم من 224 إلى 239"
+                + "\n"
+                + "حيث x بين (0-255)");
+        INV_PORT_H.set("رقم المنفذ غير صحيح!");
+        INV_PORT_C.set("تتراوح أرقام المنافذ الصالحة من 1 إلى 65535");
+        INV_TO_H.set("مهلة الاتصال غير صالحة!");
+        INV_TO_C.set("تتراوح مهلات الاتصال الصالحة من 100 إلى 9999 مللي ثانية");
+
+        RESTORE.set("استعادة الإعدادات الافتراضية");
+        RESTORE_H.set("هل تريد استعادة الإعدادات الافتراضية؟");
+        RESTORE_C.set("لا يمكن إسترجاع الإعدادات الحالية!");
+        RESTORE_BT.set("استعادة");
+        ALREADY_DEFAULT_H.set("أنت تستخدم بالفعل الإعدادات الافتراضية!");
+        ALREADY_DEFAULT_C.set("لم يتم تغيير الإعدادات الافتراضية حتى الآن");
         UPDATE.set("تحديث");
         DOWNLOAD.set("تحميل");
         CHECK.set("التحقق");
         DOWNLOAD_NOW.set("حمل الان");
-        DU_XO_H.set("تأكد من أن لديك أحدث إصدار من تيك تاك تو"); // todo change in other bg
+        DU_XO_H.set("تأكد من أن لديك أحدث إصدار من تيك تاك تو");
         DU_XO_C.set("نسختك الحالية هي: " + MainApp.CURRENT_VERSION + " ، تحقق من وجود إصدار جديد");
         DU_CHECKERS_H.set("تريد أن تلعب الداما مع أصدقائك؟");
         DU_CHECKERS_C.set("قم بتنزيل لعبة الداما الخاصة بي مجانًا");
@@ -498,11 +600,15 @@ public class Language {
         FEEDBACK_C.set("يجب أن يكون لديك حساب على GitHub");
         FEEDBACK_BT.set("إيداع رأيك!");
         COPYRIGHT_T.set("حقوق التأليف");
-        COPYRIGHT_H.set("تحتوي هذه اللعبة على شفرة مصدر غير مرخصة عن عمد (وليست مفتوحة المصدر) ،\n"
-                + "لا أعتبره إلا مشروعًا جانبيًا شخصيًا وطريقة لعرض مهاراتي.\n"
+        COPYRIGHT_H.set("تحتوي هذه اللعبة على شفرة مصدر غير مرخصة عن عمد (وليست مفتوحة المصدر) ،"
+                + "\n"
+                + "لا أعتبره إلا مشروعًا جانبيًا شخصيًا وطريقة لعرض مهاراتي."
+                + "\n"
                 + "يمكنك بالتأكيد لعب لعبتي بكل سرور ، أو مشاهدة كيف صنعتها على GitHub.");
-        COPYRIGHT_C.set("لكني لا أقبل أي نوع من الاستخدام (تجاري ، براءة اختراع ، خاص) ،\n"
-                + "، توزيع أو تعديل الكود المصدري لهذه اللعبة.\n"
+        COPYRIGHT_C.set("لكني لا أقبل أي نوع من الاستخدام (تجاري ، براءة اختراع ، خاص) ،"
+                + "\n"
+                + "، توزيع أو تعديل الكود المصدري لهذه اللعبة."
+                + "\n"
                 + "\n"
                 + "للحصول على اتفاقية ترخيص خاصة ، يرجى الاتصال بي على: bilel.bha.pro@gmail.com");
         COPYRIGHT_BT.set("شاهد المشروع على GitHub");
@@ -521,7 +627,8 @@ public class Language {
         RID_H2.set("معرف الغرفة غير صالح");
         RID_C2.set("هذه الغرفة غير موجودة!");
         HOST_H.set("لا يمكنك استضافة غرفة");
-        CHK_INTERNET.set("الرجاء التحقق من اتصال الانترنت الخاص بك");
+        CHK_INTERNET.set("تأكد أنك متصل بالإنترنت");
+        CHK_LOCAL.set("تأكد أنك متصل بشبكة محلية");
         ALL_TAKEN.set("لسوء الحظ ، جميع الغرف مأخوذة."
                 + "\n"
                 + "يرجى المحاولة لاحقًا ، أو التبديل إلى الوضع المحلي");
@@ -595,17 +702,19 @@ public class Language {
                 + " cela ne prendra pas longtemps!");
         GO_BACK.set("Continuer le tutoriel");
         SKIP_BT.set("Passer le tutoriel");
-        LANG_H.set("Bienvenu!");
-        LANG_C.set("Veuillez choisir votre langue préférée pour continuer, cela peut toujours être modifié plus tard");
-        THEME_H.set("quelle langue préférez-vous?");
+        LANG_H.set("Bienvenu ! quelle langue préférez-vous ?");
+        LANG_C.set("Veuillez choisir votre langue préférée pour continuer,"
+                + "\n"
+                + " cela peut toujours être modifié plus tard");
+        THEME_H.set("Quel thème préférez-vous");
         THEME_C.set("Choisissez entre le mode clair et sombre, cela peut toujours être modifié plus tard");
         LIGHT.set("Clair");
         DARK.set("Sombre");
-        WELCOME_H.set("Nous sommes presque terminé ! laisse moi te présenter mon jeu");
+        WELCOME_H.set("Nous sommes presque terminé ! laisse moi te présenter mon jeu");
         WELCOME_C.set("Salut! Je suis BENHADJ AMAR Bilel, le développeur de ce jeu"
                 + "\n"
                 + "\n"
-                + "Mon jeu xo n'est pas un jeu ordinaire !" // todo change in other bg
+                + "Mon jeu xo n'est pas un jeu ordinaire !"
                 + "\n"
                 + "Il se décline en deux thèmes et trois langues"
                 + "\n"
@@ -621,24 +730,33 @@ public class Language {
                 + "Pour la meilleure expérience, n'oubliez pas de vérifier les mises à jour de temps en temps"
                 + "\n");
         WELCOME_BACK.set("Content de te revoir! :)");
-        SHORTCUTS_H.set("Vous êtes prêt maintenant !");
-        SHORTCUTS_C.set("Merci pour votre patience, vous pouvez maintenant commencer à jouer, Amusez-vous bien ;)");
+        FINAL_PHASE_H.set("Pour déverrouiller l'interface graphique,"
+                + "\n"
+                + " sélectionnez l'un des modes local ou en ligne");
+        FINAL_PHASE_C.set("Merci pour votre patience, amusez-vous bien ! ;)");
         HOLD_H.set("Veuillez patienter un instant...");
         HOLD_C.set("Merci");
-        CONNECT_H.set("Attendez s'il vous plaît");
-        CONNECT_C.set("Connexion au serveur...");
+        ONLINE_SETUP_H.set("Configuration du mode en ligne");
+        ONLINE_SETUP_C.set("Connexion au serveur...");
+        LOCAL_SETUP_H.set("Configuration du mode local");
+        LOCAL_SETUP_C.set("Veuillez patienter...");
+        ONLINE_SETUP_SUCCESS.set("Le mode en ligne a été configuré avec succès");
+        ONLINE_SETUP_FAIL_H.set("Échec de la configuration du mode en ligne !");
+        ONLINE_SETUP_FAIL_C.set("Assurez-vous que vous êtes connecté à Internet,"
+                + "\n"
+                + "puis choisissez l'une des options suivantes");
+        LOCAL_SETUP_SUCCESS.set("Le mode local a été configuré avec succès");
+        LOCAL_SETUP_FAIL_H.set("Échec de la configuration du mode local !");
+        LOCAL_SETUP_FAIL_C.set("Assurez-vous que vous êtes connecté à un réseau local,"
+                + "\n"
+                + "puis choisissez l'une des options suivantes");
         LOCAL.set("Local");
         ONLINE.set("En ligne");
         CANCEL.set("Annuler");
         OK.set("OK");
         ACCEPT.set("J'accepte");
         GS_NA_C.set("Merci de revenir plus tard");
-        CR_MS_H.set("Impossible d'atteindre le serveur !");
-        CR_MS_C.set("Vérifiez votre connexion Internet et choisissez l'une des options suivantes");
         RETRY.set("Réessayez");
-        ENTER_IP_PORT.set("Entrez l'IP/PORT du serveur");
-        IP_H.set("Entrez une adresse IP valide du serveur");
-        PORT_H.set("Entrez un port valide du serveur ");
         WINDOW.set("Fenêtre");
         SWITCH_FS.set("Alterner le mode plein écran");
         SWITCH_THEME.set("Changer de thème");
@@ -740,12 +858,67 @@ public class Language {
                 + "\nCtrl + E"
                 + "\n         Terminer le jeu (retourner à la salle)");
 
+        NETWORK.set("Réseau");
+        CH_ON_IP.set("Changer l'ip du serveur");
+        CH_ON_PORT.set("Changer le port du serveur");
+        CH_ON_TO.set("Modifier le délai d'attente en ligne");
+        CH_MC_IP.set("Changer l'adresse IP de multidiffusion");
+        CH_JN_PORT.set("Changer le port des rejoindres");
+        CH_HS_PORT.set("Changer le port d'hébergeurs");
+        CH_LC_TO.set("Modifier le délai d'attente local");
+        CH_ON_IP_H.set("Entrez une adresse IP valide"
+                + "\n"
+                + "\n"
+                + "Si vous ne savez pas ce que vous faites, laissez tout dans les paramètres par défaut."
+                + "\n"
+                + "Vous pouvez toujours restaurer les paramètres par défaut dans le menu réseau");
+        CH_MC_IP_H.set("Saisissez une adresse IP de multidiffusion valide"
+                + "\n"
+                + "\n"
+                + "Si vous ne savez pas ce que vous faites, laissez tout dans les paramètres par défaut."
+                + "\n"
+                + "Vous pouvez toujours restaurer les paramètres par défaut dans le menu réseau");
+        CH_PORT_H.set("Entrez un numéro de port valide"
+                + "\n"
+                + "\n"
+                + "Si vous ne savez pas ce que vous faites, laissez tout dans les paramètres par défaut."
+                + "\n"
+                + "Vous pouvez toujours restaurer les paramètres par défaut dans le menu réseau");
+        CH_TO_H.set("Saisissez un délai d'attente valide (en millisecondes)"
+                + "\n"
+                + "\n"
+                + "Si vous ne savez pas ce que vous faites, laissez tout dans les paramètres par défaut."
+                + "\n"
+                + "Vous pouvez toujours restaurer les paramètres par défaut dans le menu réseau");
+        SAME_JH_H.set("Vous ne pouvez pas définir le même port pour les rejoindres et les hébergeurs !");
+        SAME_JH_C1.set("Ce port est réservé aux rejoindres, veuillez en saisir un autre");
+        SAME_JH_C2.set("Ce port est réservé aux hébergeurs, veuillez en saisir un autre");
+        INV_IP_H.set("Adresse IP invalide !");
+        INV_IP_C.set("Les adresses IP valides sont au format: x.x.x.x"
+                + "\n"
+                + "où x est compris entre (0-255)");
+        INV_MC_IP_H.set("Adresse IP de multidiffusion invalide !");
+        INV_MC_IP_C.set("Les adresses IP de multidiffusion valides vont de 224.x.x.x à 239.x.x.x"
+                + "\n"
+                + "où x est compris entre (0-255)");
+        INV_PORT_H.set("Numéro de port invalide !");
+        INV_PORT_C.set("Les numéros de port valides sont compris entre 1 et 65535");
+        INV_TO_H.set("Délai de connexion invalide !");
+        INV_TO_C.set("Les délais de connexion valides sont de 100 ms à 9999 ms");
+        RESTORE.set("Restaurer les paramètres par défaut");
+        RESTORE_H.set("Voulez-vous restaurer les paramètres par défaut ?");
+        RESTORE_C.set("Les paramètres actuels ne peuvent pas être restaurés");
+        RESTORE_BT.set("Restaurer");
+        ALREADY_DEFAULT_H.set("Vous utilisez déjà les paramètres par défaut !");
+        ALREADY_DEFAULT_C.set("Les paramètres par défaut n'ont pas encore été modifiés");
         UPDATE.set("Mise à jour");
         DOWNLOAD.set("Télécharger");
         CHECK.set("Vérifier");
         DOWNLOAD_NOW.set("Télécharger maintenant");
-        DU_XO_H.set("Assurez-vous d'avoir la dernière version de xo"); // todo change in other bg
-        DU_XO_C.set("Votre version actuelle est : " + MainApp.CURRENT_VERSION + " vérifier s'il y a une nouvelle version");
+        DU_XO_H.set("Assurez-vous d'avoir la dernière version de xo");
+        DU_XO_C.set("Votre version actuelle est : "
+                + MainApp.CURRENT_VERSION
+                + " vérifier s'il y a une nouvelle version");
         DU_CHECKERS_H.set("Voulez-vous jouer aux dames avec vos amis ?");
         DU_CHECKERS_C.set("Téléchargez mon jeu de dames gratuitement");
         DU_CHESS_H.set("Voulez-vous jouer aux jeu d'échecs avec vos amis ?");
@@ -769,11 +942,17 @@ public class Language {
         FEEDBACK_C.set("Vous devez avoir un profil GitHub");
         FEEDBACK_BT.set("Donnez votre avis !");
         COPYRIGHT_T.set("Notice de droits d'auteur");
-        COPYRIGHT_H.set("Ce jeu contient volontairement du code source SANS LICENCE (PAS open-source),\n"
-                + "que je considère seulement comme un projet secondaire personnel et un moyen de mettre en valeur mes compétences.\n"
+        COPYRIGHT_H.set("Ce jeu contient volontairement du code source SANS LICENCE (PAS open-source),"
+                + "\n"
+                + "que je considère seulement comme un projet secondaire personnel "
+                + "\n"
+                + "et un moyen de mettre en valeur mes compétences."
+                + "\n"
                 + "Vous pouvez sûrement et volontiers jouer à mon jeu, ou voir le code source sur GitHub.");
-        COPYRIGHT_C.set("Cependant, JE N'ACCEPTE AUCUN type d'utilisation (commercial, brevet, privé),\n"
-                + "distribution ou modification du code source de ce jeu.\n"
+        COPYRIGHT_C.set("Cependant, JE N'ACCEPTE AUCUN type d'utilisation (commercial, brevet, privé),"
+                + "\n"
+                + "distribution ou modification du code source de ce jeu."
+                + "\n"
                 + "\n"
                 + "Pour un accord de licence privé, veuillez me contacter à: bilel.bha.pro@gmail.com");
         COPYRIGHT_BT.set("Voir le projet sur GitHub");
@@ -792,7 +971,8 @@ public class Language {
         RID_H2.set("Identifiant de salle invalide");
         RID_C2.set("Cette salle n'existe pas !");
         HOST_H.set("Impossible d'héberger une salle");
-        CHK_INTERNET.set("Veuillez vérifier votre connexion internet");
+        CHK_INTERNET.set("Assurez-vous que vous êtes connecté à Internet");
+        CHK_LOCAL.set("Assurez-vous que vous êtes connecté à un réseau local");
         ALL_TAKEN.set("Malheureusement, toutes les salle sont prises."
                 + "\n"
                 + "Veuillez réessayer plus tard ou utiliser le mode local");
@@ -849,7 +1029,7 @@ public class Language {
         GE_C.set("Un événement a conduit le jeu à se terminer");
         CNT_SG_H.set("Vous ne pouvez pas encore commencer le jeu !");
         CNT_SG_C1.set("Tous les joueurs doivent être prêts à commencer le jeu");
-        CNT_SG_C2.set("Veuillez attendre que votre adversaire vous rejoigne"); // todo change in coinche and dominoes
+        CNT_SG_C2.set("Veuillez attendre que votre adversaire vous rejoigne");
         READY.set("Prêt");
     }
 
@@ -866,17 +1046,17 @@ public class Language {
                 + " it won't take long!");
         GO_BACK.set("Continue tutorial");
         SKIP_BT.set("Skip tutorial");
-        LANG_H.set("Welcome!");
+        LANG_H.set("Welcome! what language do you prefer?");
         LANG_C.set("Please choose your preferred language to proceed, this can always be changed later");
-        THEME_H.set("what language do you prefer?");
-        THEME_C.set("Choose between light and dark mode, this can always be changed later");
+        THEME_H.set("What theme do you prefer");
+        THEME_C.set("Choose between light and dark theme, this can always be changed later");
         LIGHT.set("Light");
         DARK.set("Dark");
         WELCOME_H.set("We're almost done! let me introduce you to my game");
         WELCOME_C.set("Hi! I am BENHADJ AMAR Bilel, the developer of this game"
                 + "\n"
                 + "\n"
-                + "My xo game is no ordinary game!" // todo change in other bg
+                + "My xo game is no ordinary game!"
                 + "\n"
                 + "It comes in two themes, and three languages"
                 + "\n"
@@ -890,24 +1070,31 @@ public class Language {
                 + "For the best experience, don't forget to check for updates from time to time"
                 + "\n");
         WELCOME_BACK.set("Welcome back! :)");
-        SHORTCUTS_H.set("Now you're ready!");
-        SHORTCUTS_C.set("Thank you for your patience, you can now start playing the game, enjoy ;)");
+        FINAL_PHASE_H.set("To unlock the gui, select either local or online mode");
+        FINAL_PHASE_C.set("Thanks for your patience, have fun! ;)");
         HOLD_H.set("Please hold for a moment...");
         HOLD_C.set("Thank you");
-        CONNECT_H.set("Please wait");
-        CONNECT_C.set("Connecting to server...");
+        ONLINE_SETUP_H.set("Setting up online mode");
+        ONLINE_SETUP_C.set("Connecting to server...");
+        LOCAL_SETUP_H.set("Setting up local mode");
+        LOCAL_SETUP_C.set("Please wait...");
+        ONLINE_SETUP_SUCCESS.set("Online mode was setup successfully");
+        ONLINE_SETUP_FAIL_H.set("Online mode setup failed!");
+        ONLINE_SETUP_FAIL_C.set("Make sure you're connected to Internet,"
+                + "\n"
+                + "then choose one of the following");
+        LOCAL_SETUP_SUCCESS.set("Local mode was setup successfully");
+        LOCAL_SETUP_FAIL_H.set("Local mode setup failed!");
+        LOCAL_SETUP_FAIL_C.set("Make sure you're connected to a local area network,"
+                + "\n"
+                + "then choose one of the following");
         LOCAL.set("Local");
         ONLINE.set("Online");
         CANCEL.set("Cancel");
         OK.set("OK");
         ACCEPT.set("I accept");
         GS_NA_C.set("Please come back later");
-        CR_MS_H.set("Couldn't reach the server!");
-        CR_MS_C.set("Check your Internet connection, and choose one of the following");
         RETRY.set("Retry");
-        ENTER_IP_PORT.set("Enter server ip/port");
-        IP_H.set("Enter a valid server ip");
-        PORT_H.set("Enter a valid server port");
         WINDOW.set("Window");
         SWITCH_FS.set("Toggle fullscreen mode");
         SWITCH_THEME.set("Switch theme");
@@ -1009,11 +1196,64 @@ public class Language {
                 + "\nCtrl + E"
                 + "\n         End game (return to room)");
 
+        NETWORK.set("Network");
+        CH_ON_IP.set("Change server ip");
+        CH_ON_PORT.set("Change server port");
+        CH_ON_TO.set("Change online timeout");
+        CH_MC_IP.set("Change multicast ip");
+        CH_JN_PORT.set("Change joiners port");
+        CH_HS_PORT.set("Change hosters port");
+        CH_LC_TO.set("Change local timeout");
+        CH_ON_IP_H.set("Enter a valid IP address"
+                + "\n"
+                + "\n"
+                + "If you don't know what you're doing, leave everything in default settings."
+                + "\n"
+                + "You can always restore default settings in the network menu");
+        CH_MC_IP_H.set("Enter a valid multicast IP address"
+                + "\n"
+                + "\n"
+                + "If you don't know what you're doing, leave everything in default settings."
+                + "\n"
+                + "You can always restore default settings in the network menu");
+        CH_PORT_H.set("Enter a valid port number"
+                + "\n"
+                + "\n"
+                + "If you don't know what you're doing, leave everything in default settings."
+                + "\n"
+                + "You can always restore default settings in the network menu");
+        CH_TO_H.set("Enter a valid timeout (in milliseconds)"
+                + "\n"
+                + "\n"
+                + "If you don't know what you're doing, leave everything in default settings."
+                + "\n"
+                + "You can always restore default settings in the network menu");
+        SAME_JH_H.set("You can't set the same port for joiners and hosters!");
+        SAME_JH_C1.set("This port is reserved to joiners port, please enter a different one");
+        SAME_JH_C2.set("This port is reserved to hosters port, please enter a different one");
+        INV_IP_H.set("Invalid IP address!");
+        INV_IP_C.set("Valid IP addresses are in form: x.x.x.x"
+                + "\n"
+                + "where x is between (0-255)");
+        INV_MC_IP_H.set("Invalid multicast IP address!");
+        INV_MC_IP_C.set("Valid multicast IP addresses are from 224.x.x.x to 239.x.x.x"
+                + "\n"
+                + "where x is between (0-255)");
+        INV_PORT_H.set("Invalid port number!");
+        INV_PORT_C.set("Valid port numbers are from 1 to 65535");
+        INV_TO_H.set("Invalid connection timeout!");
+        INV_TO_C.set("Valid connection timeouts are from 100 ms to 9999 ms");
+        RESTORE.set("Restore default settings");
+        RESTORE_H.set("Do you want to restore default settings?");
+        RESTORE_C.set("The current settings cannot be restored");
+        RESTORE_BT.set("Restore");
+        ALREADY_DEFAULT_H.set("You are already using the default settings!");
+        ALREADY_DEFAULT_C.set("Default settings have not been changed yet");
         UPDATE.set("Update");
         DOWNLOAD.set("Download");
         CHECK.set("Check");
         DOWNLOAD_NOW.set("Download now");
-        DU_XO_H.set("Make sure you have the latest version of xo"); // todo change in other bg
+        DU_XO_H.set("Make sure you have the latest version of xo");
         DU_XO_C.set("Your current version is : " + MainApp.CURRENT_VERSION + ", Check for new version");
         DU_CHECKERS_H.set("Want to play Checkers with your friends?");
         DU_CHECKERS_C.set("Download my Checkers app for free");
@@ -1038,11 +1278,15 @@ public class Language {
         FEEDBACK_C.set("You need to have a GitHub profile");
         FEEDBACK_BT.set("Give feedback!");
         COPYRIGHT_T.set("Copyright notice");
-        COPYRIGHT_H.set("This game contain purposely UNLICENSED source code (NOT open-source),\n"
-                + "that I only consider as a personal side project and a way to showcase my skills.\n"
+        COPYRIGHT_H.set("This game contain purposely UNLICENSED source code (NOT open-source),"
+                + "\n"
+                + "that I only consider as a personal side project and a way to showcase my skills."
+                + "\n"
                 + "You can surely and gladly play my game, or view how it's made on GitHub.");
-        COPYRIGHT_C.set("However, I DO NOT grant any kind of usage (commercial, patent, private),\n"
-                + "distribution or modification of the source code of this game.\n"
+        COPYRIGHT_C.set("However, I DO NOT grant any kind of usage (commercial, patent, private),"
+                + "\n"
+                + "distribution or modification of the source code of this game."
+                + "\n"
                 + "\n"
                 + "For a private license agreement please contact me at: bilel.bha.pro@gmail.com");
         COPYRIGHT_BT.set("See project on GitHub");
@@ -1061,7 +1305,8 @@ public class Language {
         RID_H2.set("Invalid room ID");
         RID_C2.set("This room doesn't exist!");
         HOST_H.set("Couldn't host a room");
-        CHK_INTERNET.set("Please check your Internet connection");
+        CHK_INTERNET.set("Make sure you are connected to Internet ");
+        CHK_LOCAL.set("Make sure you're connected to a local area network");
         ALL_TAKEN.set("Unfortunately, all rooms are taken."
                 + "\n"
                 + "Please try again later, or switch to local mode");
@@ -1123,7 +1368,6 @@ public class Language {
     }
 
     public static void first_timer() {
-        init();
         String lang = System.getProperty("user.language");
         switch (lang) {
             case "fr":

@@ -7,7 +7,7 @@ import bg.xo.server.game.XO_GameServer;
 import bg.xo.server.local.LocalClient;
 import javafx.application.Platform;
 import shared.RoomComm;
-import shared.RoomInfo;
+import shared.LocalRoomInfo;
 import shared.RoomMsg;
 import shared.RoomPosition;
 
@@ -85,20 +85,6 @@ public class RoomServer {
         waitForPlayers(true);
     }
 
-    private static List<String> get_lan_ip() throws SocketException {
-        List<String> local_ips = new ArrayList<>();
-        for (final Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-             interfaces.hasMoreElements(); ) {
-            final NetworkInterface cur = interfaces.nextElement();
-            for (final InterfaceAddress addr : cur.getInterfaceAddresses()) {
-                final InetAddress inet_addr = addr.getAddress();
-                if (!(inet_addr instanceof Inet4Address)) continue;
-                local_ips.add(inet_addr.getHostAddress());
-            }
-        }
-        return local_ips;
-    }
-
     protected RoomPosition getEmptyPosition() {
         List<RoomPosition> avail_pos = new ArrayList<>(Arrays.asList(RoomPosition.values()));
         for (Entry<Integer, Client> IdClientEntry : clients.entrySet()) {
@@ -112,12 +98,15 @@ public class RoomServer {
         return room_port;
     }
 
-    public static RoomInfo getHostRoomInfo() throws SocketException {
-        return new RoomInfo(get_lan_ip(), room_port);
+    public static LocalRoomInfo getHostRoomInfo() throws SocketException {
+        return new LocalRoomInfo(LocalClient.get_lan_ip(), room_port);
     }
 
-    public static RoomInfo getJoinRoomInfo() {
-        return new RoomInfo(room_port, getHost().name, clients.size());
+    public static LocalRoomInfo getJoinRoomInfo() {
+        Client host = getHost();
+        if (host != null)
+            return new LocalRoomInfo(room_port, host.name, clients.size());
+        else return null;
     }
 
     private void start_broadcast() {
@@ -154,8 +143,9 @@ public class RoomServer {
     private void MeetNewClient(Client new_client) {
         for (Entry<Integer, Client> IdClientEntry : clients.entrySet()) {
             Client existing_client = IdClientEntry.getValue();
-            if (new_client.id != existing_client.id)
+            if (new_client.id != existing_client.id) {
                 existing_client.meet(new_client);
+            }
         }
     }
 

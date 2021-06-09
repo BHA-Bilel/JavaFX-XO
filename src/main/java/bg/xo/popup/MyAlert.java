@@ -13,43 +13,67 @@ import javafx.scene.control.ButtonType;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 public class MyAlert extends Alert {
-    private static final Alert hold_alert, connect_alert, migration_alert;
-    private static volatile boolean hold_showing = false;
 
-    static {
-        connect_alert = new MyAlert(AlertType.INFORMATION, Language.CONNECT_H, Language.CONNECT_C);
-        connect_alert.getButtonTypes().removeIf(node -> true);
-        hold_alert = new MyAlert(AlertType.INFORMATION, Language.HOLD_H, Language.HOLD_C);
-        hold_alert.getButtonTypes().removeIf(node -> true);
-        migration_alert = new MyAlert(AlertType.INFORMATION, Language.MIGRATION_H1, Language.MIGRATION_C1);
-        migration_alert.getButtonTypes().removeIf(node -> true);
-    }
+    private static Map<String, MyAlert> alerts;
 
     public static void post_init() {
-        hold_alert.initOwner(MainApp.stage);
-        hold_alert.getDialogPane().lookup(".dialog-pane:header *.header-panel")
-                .styleProperty().bind(
-                Bindings.concat(" -fx-font-size: ", MainApp.fontProperty.multiply(.8).asString())
-        );
-        hold_alert.getDialogPane().lookup(".dialog-pane > *.label.content")
-                .styleProperty().bind(
-                Bindings.concat(" -fx-font-size: ", MainApp.fontProperty.multiply(.6).asString())
-        );
+        MyAlert online_setup_alert = new MyAlert(AlertType.INFORMATION, Language.ONLINE_SETUP_H, Language.ONLINE_SETUP_C);
+        MyAlert local_setup_alert = new MyAlert(AlertType.INFORMATION, Language.LOCAL_SETUP_H, Language.LOCAL_SETUP_C);
+        MyAlert hold_alert = new MyAlert(AlertType.INFORMATION, Language.HOLD_H, Language.HOLD_C);
+        MyAlert migration_alert = new MyAlert(AlertType.INFORMATION, Language.MIGRATION_H1, Language.MIGRATION_C1);
+
+        alerts = new HashMap<>();
+        alerts.put("ONLINE", online_setup_alert);
+        alerts.put("LOCAL", local_setup_alert);
+        alerts.put("HOLD", hold_alert);
+        alerts.put("MIGRATION", migration_alert);
+
+        for (Alert alert : alerts.values()) {
+            alert.getButtonTypes().removeIf(node -> true);
+        }
     }
 
     public static void update_alerts_theme() {
-        connect_alert.getDialogPane().getStylesheets().clear();
-        hold_alert.getDialogPane().getStylesheets().clear();
-        migration_alert.getDialogPane().getStylesheets().clear();
-        connect_alert.getDialogPane().getStylesheets().add(
-                MyAlert.class.getResource(MainApp.CURRENT_THEME.replace("/main_", "/alert_")).toExternalForm());
-        hold_alert.getDialogPane().getStylesheets().add(
-                MyAlert.class.getResource(MainApp.CURRENT_THEME.replace("/main_", "/alert_")).toExternalForm());
-        migration_alert.getDialogPane().getStylesheets().add(
-                MyAlert.class.getResource(MainApp.CURRENT_THEME.replace("/main_", "/alert_")).toExternalForm());
+        for (Alert alert : alerts.values()) {
+            alert.getDialogPane().getStylesheets().clear();
+            alert.getDialogPane().getStylesheets().add(
+                    MyAlert.class.getResource(MainApp.CURRENT_THEME.replace("/main_", "/alert_")).toExternalForm());
+        }
+    }
+
+    public static void show_alert(String type) {
+        MyAlert alert = alerts.get(type);
+        if (Platform.isFxApplicationThread()) {
+            Window window = alert.getDialogPane().getScene().getWindow();
+            window.setOnCloseRequest(Event::consume);
+            alert.show();
+        } else {
+            Platform.runLater(() -> {
+                Window window = alert.getDialogPane().getScene().getWindow();
+                window.setOnCloseRequest(Event::consume);
+                alert.show();
+            });
+        }
+    }
+
+    public static void hide_alert(String type) {
+        MyAlert alert = alerts.get(type);
+        if (Platform.isFxApplicationThread()) {
+            Window window = alert.getDialogPane().getScene().getWindow();
+            window.setOnCloseRequest(event -> window.hide());
+            window.hide();
+        } else {
+            Platform.runLater(() -> {
+                Window window = alert.getDialogPane().getScene().getWindow();
+                window.setOnCloseRequest(event -> window.hide());
+                window.hide();
+            });
+        }
     }
 
     public MyAlert(AlertType alertType, StringProperty header) {
@@ -123,76 +147,7 @@ public class MyAlert extends Alert {
                 getClass().getResource(MainApp.CURRENT_THEME.replace("/main_", "/alert_")).toExternalForm());
     }
 
-    public static void allow_user_interactions() {
-        if (!hold_showing) return;
-        hold_showing = false;
-        if (Platform.isFxApplicationThread()) {
-            Window window = hold_alert.getDialogPane().getScene().getWindow();
-            window.setOnCloseRequest(event -> window.hide());
-            window.hide();
-        } else {
-            Platform.runLater(() -> {
-                Window window = hold_alert.getDialogPane().getScene().getWindow();
-                window.setOnCloseRequest(event -> window.hide());
-                window.hide();
-            });
-        }
-    }
-
-    public static void prevent_user_interactions() {
-        if (hold_showing) return;
-        hold_showing = true;
-        if (Platform.isFxApplicationThread()) {
-            Window window = hold_alert.getDialogPane().getScene().getWindow();
-            window.setOnCloseRequest(Event::consume);
-            hold_alert.show();
-        } else {
-            Platform.runLater(() -> {
-                Window window = hold_alert.getDialogPane().getScene().getWindow();
-                window.setOnCloseRequest(Event::consume);
-                hold_alert.show();
-            });
-        }
-    }
-
-    public static void show_connect_alert() {
-        Window window = connect_alert.getDialogPane().getScene().getWindow();
-        window.setOnCloseRequest(Event::consume);
-        connect_alert.show();
-    }
-
-    public static void close_connect_alert() {
-        Window window = connect_alert.getDialogPane().getScene().getWindow();
-        window.setOnCloseRequest(event -> window.hide());
-        window.hide();
-    }
-
-    public static void migration_started() {
-        if (Platform.isFxApplicationThread()) {
-            Window window = migration_alert.getDialogPane().getScene().getWindow();
-            window.setOnCloseRequest(Event::consume);
-            migration_alert.show();
-        } else {
-            Platform.runLater(() -> {
-                Window window = migration_alert.getDialogPane().getScene().getWindow();
-                window.setOnCloseRequest(Event::consume);
-                migration_alert.show();
-            });
-        }
-    }
-
-    public static void migration_finished() {
-        Platform.runLater(() -> {
-            Window window = migration_alert.getDialogPane().getScene().getWindow();
-            window.setOnCloseRequest(event -> window.hide());
-            window.hide();
-            Alert migration_finished = new MyAlert(AlertType.INFORMATION, Language.MIGRATION_H2, Language.MIGRATION_C2);
-            migration_finished.show();
-        });
-    }
-
     public static void first_timer(MainApp mainApp, int welcome_phase) {
-        Language.first_timer();
         Alert skip_alert = new MyAlert(AlertType.WARNING, Language.SKIP_H, Language.SKIP_C);
         ButtonType go_back = new ButtonType(Language.GO_BACK.getValue(), ButtonBar.ButtonData.CANCEL_CLOSE);
         ButtonType skip = new ButtonType(Language.SKIP_BT.getValue(), ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -211,7 +166,7 @@ public class MyAlert extends Alert {
                 lang_alert.getButtonTypes().setAll(english, french, arabic, cancel);
                 Optional<ButtonType> res = lang_alert.showAndWait();
                 if (res.isEmpty() || res.get() == cancel) {
-                    show_skip_alert(mainApp, welcome_phase, skip_alert, go_back, skip);
+                    show_skip_alert(mainApp, 1, skip_alert, go_back, skip);
                     return;
                 } else if (res.get() == english) {
                     Language.load_lang(LANGNAME.ENGLISH);
@@ -220,6 +175,13 @@ public class MyAlert extends Alert {
                 } else if (res.get() == arabic) {
                     Language.load_lang(LANGNAME.ARABIC);
                 }
+                skip_alert = new MyAlert(AlertType.WARNING, Language.SKIP_H, Language.SKIP_C);
+                go_back = new ButtonType(Language.GO_BACK.getValue(), ButtonBar.ButtonData.CANCEL_CLOSE);
+                skip = new ButtonType(Language.SKIP_BT.getValue(), ButtonBar.ButtonData.CANCEL_CLOSE);
+                skip_alert.getButtonTypes().setAll(go_back, skip);
+                previous = new ButtonType(Language.PREVIOUS.getValue());
+                next = new ButtonType(Language.NEXT.getValue());
+                cancel = new ButtonType(Language.CANCEL.getValue(), ButtonBar.ButtonData.CANCEL_CLOSE);
             }
             case 2: {
                 Alert theme_alert = new MyAlert(AlertType.CONFIRMATION, Language.THEME_H, Language.THEME_C);
@@ -228,12 +190,12 @@ public class MyAlert extends Alert {
                 theme_alert.getButtonTypes().setAll(previous, light, dark, cancel);
                 Optional<ButtonType> res = theme_alert.showAndWait();
                 if (res.isEmpty() || res.get() == cancel) {
-                    show_skip_alert(mainApp, welcome_phase, skip_alert, go_back, skip);
+                    show_skip_alert(mainApp, 2, skip_alert, go_back, skip);
                     return;
                 } else if (res.get() == light) {
-                    mainApp.update_theme(MainApp.themes[0]);
+                    mainApp.update_theme(MainApp.themes[0], MainApp.notif_themes[0]);
                 } else if (res.get() == dark) {
-                    mainApp.update_theme(MainApp.themes[1]);
+                    mainApp.update_theme(MainApp.themes[1], MainApp.notif_themes[1]);
                 } else if (res.get() == previous) {
                     MyAlert.first_timer(mainApp, 1);
                     return;
@@ -247,7 +209,7 @@ public class MyAlert extends Alert {
                 welcome_alert.getButtonTypes().setAll(previous, next, cancel);
                 Optional<ButtonType> res = welcome_alert.showAndWait();
                 if (res.isEmpty() || res.get() == cancel) {
-                    show_skip_alert(mainApp, welcome_phase, skip_alert, go_back, skip);
+                    show_skip_alert(mainApp, 3, skip_alert, go_back, skip);
                     return;
                 } else if (res.get() == previous) {
                     MyAlert.first_timer(mainApp, 2);
@@ -259,7 +221,7 @@ public class MyAlert extends Alert {
                 general_shortcuts.getButtonTypes().setAll(previous, next, cancel);
                 Optional<ButtonType> res = general_shortcuts.showAndWait();
                 if (res.isEmpty() || res.get() == cancel) {
-                    show_skip_alert(mainApp, welcome_phase, skip_alert, go_back, skip);
+                    show_skip_alert(mainApp, 4, skip_alert, go_back, skip);
                     return;
                 } else if (res.get() == previous) {
                     MyAlert.first_timer(mainApp, 3);
@@ -271,7 +233,7 @@ public class MyAlert extends Alert {
                 main_shortcuts.getButtonTypes().setAll(previous, next, cancel);
                 Optional<ButtonType> res = main_shortcuts.showAndWait();
                 if (res.isEmpty() || res.get() == cancel) {
-                    show_skip_alert(mainApp, welcome_phase, skip_alert, go_back, skip);
+                    show_skip_alert(mainApp, 5, skip_alert, go_back, skip);
                     return;
                 } else if (res.get() == previous) {
                     MyAlert.first_timer(mainApp, 4);
@@ -283,7 +245,7 @@ public class MyAlert extends Alert {
                 join_shortcuts.getButtonTypes().setAll(previous, next, cancel);
                 Optional<ButtonType> res = join_shortcuts.showAndWait();
                 if (res.isEmpty() || res.get() == cancel) {
-                    show_skip_alert(mainApp, welcome_phase, skip_alert, go_back, skip);
+                    show_skip_alert(mainApp, 6, skip_alert, go_back, skip);
                     return;
                 } else if (res.get() == previous) {
                     MyAlert.first_timer(mainApp, 5);
@@ -295,7 +257,7 @@ public class MyAlert extends Alert {
                 room1_shortcuts.getButtonTypes().setAll(previous, next, cancel);
                 Optional<ButtonType> res = room1_shortcuts.showAndWait();
                 if (res.isEmpty() || res.get() == cancel) {
-                    show_skip_alert(mainApp, welcome_phase, skip_alert, go_back, skip);
+                    show_skip_alert(mainApp, 7, skip_alert, go_back, skip);
                     return;
                 } else if (res.get() == previous) {
                     MyAlert.first_timer(mainApp, 6);
@@ -307,7 +269,7 @@ public class MyAlert extends Alert {
                 room2_shortcuts.getButtonTypes().setAll(previous, next, cancel);
                 Optional<ButtonType> res = room2_shortcuts.showAndWait();
                 if (res.isEmpty() || res.get() == cancel) {
-                    show_skip_alert(mainApp, welcome_phase, skip_alert, go_back, skip);
+                    show_skip_alert(mainApp, 8, skip_alert, go_back, skip);
                     return;
                 } else if (res.get() == previous) {
                     MyAlert.first_timer(mainApp, 7);
@@ -315,11 +277,11 @@ public class MyAlert extends Alert {
                 }
             }
             case 9: {
-                Alert game_shortcuts = new MyAlert(AlertType.INFORMATION, Language.M_SH_T, Language.M_SH_H, Language.M_SH_C);
+                Alert game_shortcuts = new MyAlert(AlertType.INFORMATION, Language.G_SH_T, Language.G_SH_H, Language.G_SH_C);
                 game_shortcuts.getButtonTypes().setAll(previous, next, cancel);
                 Optional<ButtonType> res = game_shortcuts.showAndWait();
                 if (res.isEmpty() || res.get() == cancel) {
-                    show_skip_alert(mainApp, welcome_phase, skip_alert, go_back, skip);
+                    show_skip_alert(mainApp, 9, skip_alert, go_back, skip);
                     return;
                 } else if (res.get() == previous) {
                     MyAlert.first_timer(mainApp, 8);
@@ -327,12 +289,12 @@ public class MyAlert extends Alert {
                 }
             }
             case 10: {
-                Alert final_shortcuts = new MyAlert(AlertType.INFORMATION, Language.SHORTCUTS, Language.SHORTCUTS_H, Language.SHORTCUTS_C);
+                Alert final_shortcuts = new MyAlert(AlertType.INFORMATION, Language.SHORTCUTS, Language.FINAL_PHASE_H, Language.FINAL_PHASE_C);
                 ButtonType done = new ButtonType(Language.DONE.getValue(), ButtonBar.ButtonData.CANCEL_CLOSE);
                 final_shortcuts.getButtonTypes().setAll(previous, done);
                 Optional<ButtonType> res = final_shortcuts.showAndWait();
                 if (res.isEmpty() || res.get() == done) {
-                    mainApp.first_time_done();
+                    mainApp.update_property("FIRST_TIME", "false");
                 } else if (res.get() == previous) {
                     MyAlert.first_timer(mainApp, 9);
                 }
@@ -344,7 +306,7 @@ public class MyAlert extends Alert {
         Optional<ButtonType> res;
         res = skip_alert.showAndWait();
         if (res.isEmpty() || res.get() == skip) {
-            mainApp.first_time_done();
+            mainApp.update_property("FIRST_TIME", "false");
         } else if (res.get() == go_back) {
             first_timer(mainApp, welcome_phase);
         }

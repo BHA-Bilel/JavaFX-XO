@@ -1,3 +1,15 @@
+.text {
+	-fx-text-fill: black;
+}
+
+.label {
+    -fx-text-fill: black;
+}
+
+.toggle-button {
+    -fx-text-fill: black;
+}
+
 .label:disabled, .label:disabled > * {
     -fx-opacity: 1.0;
 }
@@ -6,6 +18,7 @@
 	-jfx-label-float : true;
 	-jfx-focus-color: blue;
 	-jfx-unfocus-color: black;
+	-fx-text-fill: black;
 }
 
 .button {
@@ -14,6 +27,7 @@
 	-fx-border-width : 2.0;
 	-fx-background-radius : 20.0;
 	-fx-focus-traversable: false;
+	-fx-text-fill: black;
 }
 
 .button:hover {
@@ -83,7 +97,12 @@
     -fx-background-color: #b71234;
 }
 
-.check-box {
+.jfx-radio-button {
+	-fx-text-fill: black;
+}
+
+.jfx-check-box {
+    -fx-text-fill: black;
     -fx-focus-traversable: false;
 }
 

@@ -3,6 +3,7 @@ module MainModule {
     requires com.jfoenix;
     requires org.controlsfx.controls;
     requires java.desktop;
+    requires javafx.swing;
 
     exports shared;
     exports bg.xo.server.local;

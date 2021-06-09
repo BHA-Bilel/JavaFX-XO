@@ -1,7 +1,6 @@
 package bg.xo.server.room;
 
 import shared.RoomComm;
-import shared.RoomInfo;
 import shared.RoomMsg;
 import shared.RoomPosition;
 
