@@ -96,6 +96,8 @@ public class JoinApp extends VBox {
         refreshButton.setMinSize(JFXButton.USE_PREF_SIZE, JFXButton.USE_PREF_SIZE);
         refreshButton.setOnAction(e -> {
             MyAlert.show_alert("HOLD");
+            removeJoinShortcuts();
+            featuringGP.getChildren().clear();
             if (MainApp.online.isSelected()) {
                 joinClient.askForMore();
             } else {
@@ -110,6 +112,7 @@ public class JoinApp extends VBox {
             nextButton.setMinSize(JFXButton.USE_PREF_SIZE, JFXButton.USE_PREF_SIZE);
             nextButton.setOnAction(e -> {
                 MyAlert.show_alert("HOLD");
+                removeJoinShortcuts();
                 featuringGP.getChildren().clear();
                 show_next_local_rooms();
             });
@@ -121,7 +124,6 @@ public class JoinApp extends VBox {
     }
 
     private void searchLocalRooms() {
-        featuringGP.getChildren().clear();
         Thread local_search = new Thread(() -> {
             rooms = LocalClient.send_join_req();
             Platform.runLater(this::show_next_local_rooms);
@@ -171,7 +173,6 @@ public class JoinApp extends VBox {
         join_shortcuts_activated = true;
         MainApp.stage.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.H, KeyCombination.CONTROL_DOWN), return_home::fire);
         MainApp.stage.getScene().getAccelerators().put(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN), refreshButton::fire);
-
     }
 
     public void add_next_shortcut() {
@@ -180,7 +181,6 @@ public class JoinApp extends VBox {
 
     private void remove_next_shortcut() {
         MainApp.stage.getScene().getAccelerators().remove(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN));
-
     }
 
     private void removeJoinShortcuts() {
@@ -225,8 +225,6 @@ public class JoinApp extends VBox {
         }
 
         private void askForMore() {
-            removeJoinShortcuts();
-            featuringGP.getChildren().clear();
             Thread online_search = new Thread(() -> {
                 try {
                     objOut.writeBoolean(true);
@@ -391,7 +389,6 @@ public class JoinApp extends VBox {
                 featuringGP.add(emptyLabel, 0, 2);
             }
         }
-
     }
 
 }

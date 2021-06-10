@@ -422,9 +422,9 @@ public class RoomApp extends VBox {
                         case GAME_STARTED: {
                             Socket gameSocket = new Socket();
                             if (MainApp.online.isSelected())
-                                gameSocket.connect(new InetSocketAddress(MainApp.ONLINE_IP, (int) msg.adt_data[0]), MainApp.online.isSelected() ? MainApp.ONLINE_TIMEOUT : MainApp.LOCAL_TIMEOUT);
+                                gameSocket.connect(new InetSocketAddress(MainApp.ONLINE_IP, (int) msg.adt_data[0]), MainApp.ONLINE_TIMEOUT);
                             else
-                                gameSocket.connect(new InetSocketAddress(host_ip, (int) msg.adt_data[0]), MainApp.online.isSelected() ? MainApp.ONLINE_TIMEOUT : MainApp.LOCAL_TIMEOUT);
+                                gameSocket.connect(new InetSocketAddress(host_ip, (int) msg.adt_data[0]), MainApp.LOCAL_TIMEOUT);
                             gameApp = new GameApp(gameSocket, name, playersGP.getOpponentName());
                             Platform.runLater(() -> mainApp.setGameApp(gameApp));
                             break;
