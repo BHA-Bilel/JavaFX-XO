@@ -23,6 +23,7 @@ import javafx.scene.input.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import org.controlsfx.control.Notifications;
 import shared.RoomComm;
 import shared.LocalRoomInfo;
@@ -248,16 +249,20 @@ public class RoomApp extends VBox {
         }
         if (!from_handshake) {
             playersGP.resetReadyStatus();
-            showNotification(player_name + Language.JOINED_NOTIF.getValue(), "info");
+            showNotification(MainApp.stage, player_name + Language.JOINED_NOTIF.getValue(), "info");
         }
     }
 
-    public void showNotification(String text, String notif_type) {
+    public void showNotification(Stage stage, String text, String notif_type) {
         Platform.runLater(() -> {
             if (notifications.isSelected()) {
                 Notifications notif = Notifications.create()
                         .title(MainApp.GAME_NAME.getValue()).text(text)
-                        .owner(MainApp.stage);
+                        .owner(MainApp.stage).onAction(e -> {
+                            if (stage.isIconified()) stage.setIconified(false);
+                            else if (!stage.isShowing()) stage.show();
+                            else stage.requestFocus();
+                        });
                 switch (notif_type) {
                     case "info": {
                         notif.showInformation();
@@ -286,7 +291,7 @@ public class RoomApp extends VBox {
 
     public void viewScore() {
         if (gameApp == null) return;
-        gameApp.showResults();
+        gameApp.showResults(true);
     }
 
     class RoomClient extends Thread {
@@ -431,7 +436,7 @@ public class RoomApp extends VBox {
                         }
                         case GAME_ENDED: {
                             if (gameApp != null) {
-                                gameApp.showResults();
+                                gameApp.showResults(false);
                                 gameApp.closeGameApp();
                                 gameApp = null;
                                 Platform.runLater(() -> {
@@ -750,7 +755,7 @@ public class RoomApp extends VBox {
             checkHost();
         }
         playersGP.resetReadyStatus();
-        showNotification(isKicked ? Language.kicked_notif(username, id == this.id) : username + Language.LEFT_NOTIF.getValue(), "error");
+        showNotification(MainApp.stage, isKicked ? Language.kicked_notif(username, id == this.id) : username + Language.LEFT_NOTIF.getValue(), "error");
     }
 
     private void checkHost() {

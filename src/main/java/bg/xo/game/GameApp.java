@@ -28,7 +28,7 @@ public class GameApp extends GridPane {
     private final String yourName, opName;
 
     private boolean yourTurn, playable = false;
-    private Alert results_alert;
+    private MyAlert results_alert;
     private int playerID;
 
     public int parties_won, parties_lost, drawCount;
@@ -81,7 +81,7 @@ public class GameApp extends GridPane {
             timeLine.play();
             timeLine.setOnFinished(e -> {
                 startNewGame(youWon);
-                showResults();
+                showResults(false);
             });
         });
     }
@@ -119,15 +119,16 @@ public class GameApp extends GridPane {
         gameClient.sendCoor(x, y);
     }
 
-    public void showResults() {
+    public void showResults(boolean shortcut) {
         if (results_alert != null && results_alert.isShowing())
-            return;
+            if (shortcut) return;
+            else results_alert.close();
         Platform.runLater(() -> {
-            results_alert = new MyAlert(Alert.AlertType.INFORMATION, Language.GR_H);
             String text = yourName + " : " + parties_won + "\n";
             text += opName + " : " + parties_lost + "\n";
             text += Language.DRAWS.getValue() + drawCount;
-            results_alert.setContentText(text);
+            if (results_alert == null) results_alert = new MyAlert(Alert.AlertType.INFORMATION, Language.GR_H, text);
+            else results_alert.update(text);
             results_alert.show();
         });
     }
@@ -147,7 +148,7 @@ public class GameApp extends GridPane {
         if (cpt == 9) {
             startNewGame(drawCount % 2 == (playerID - 1));
             drawCount++;
-            showResults();
+            showResults(false);
             return false;
         }
         return true;

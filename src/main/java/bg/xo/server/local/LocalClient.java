@@ -131,12 +131,8 @@ public class LocalClient {
         return true;
     }
 
-    public static void waitForClients() throws IOException {
-        hosting = true;
-    }
-
-    public static void stop_waiting() {
-        hosting = false;
+    public static void hosting(boolean hosting) {
+        LocalClient.hosting = hosting;
     }
 
     public static Map<String, LocalRoomInfo> send_join_req() {

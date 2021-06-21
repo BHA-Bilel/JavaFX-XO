@@ -20,11 +20,8 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import javafx.css.CssMetaData;
-import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.SnapshotParameters;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Menu;
@@ -32,7 +29,6 @@ import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ButtonBar.ButtonData;
-import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -45,11 +41,9 @@ import shared.Game;
 import shared.LocalRoomInfo;
 import shared.MainRequest;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
-import java.awt.image.RenderedImage;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -105,38 +99,13 @@ public class MainApp extends Application {
         Language.init();
         init_properties();
         online_setup_runnable = () -> {
-            try {
-                Socket listen = new Socket();
+            try (Socket listen = new Socket()) {
                 listen.connect(new InetSocketAddress(ONLINE_IP, ONLINE_PORT), ONLINE_TIMEOUT);
-                try (DataOutputStream dataOut = new DataOutputStream(listen.getOutputStream());
-                     DataInputStream dataIn = new DataInputStream(listen.getInputStream())) {
-                    dataOut.writeInt(BG_GAME.ordinal());
-                    dataOut.flush();
-                    try {
-                        ONLINE_GAME_PORT = dataIn.readInt();
-                    } catch (NullPointerException e) {
-                        Alert alert = new MyAlert(AlertType.INFORMATION, Language.unav(), Language.GS_NA_C);
-                        alert.show();
-                        setup_local_multiplayer();
-                    }
-                } catch (IOException e) {
-                    Alert alert = new MyAlert(AlertType.INFORMATION, Language.unav(), Language.GS_NA_C);
-                    alert.show();
-                    setup_local_multiplayer();
-                }
-                try {
-                    listen.close();
-                } catch (IOException ignore) {
-                }
-                Platform.runLater(() -> {
-                    enable_gui();
-                    MyAlert.hide_alert("ONLINE");
-                    add_join_shortcut();
-                    Notifications notif = Notifications.create()
-                            .title(MainApp.GAME_NAME.getValue()).text(Language.ONLINE_SETUP_SUCCESS.getValue())
-                            .owner(stage).hideCloseButton();
-                    notif.show();
-                });
+                DataOutputStream dataOut = new DataOutputStream(listen.getOutputStream());
+                DataInputStream dataIn = new DataInputStream(listen.getInputStream());
+                dataOut.writeInt(BG_GAME.ordinal());
+                dataOut.flush();
+                ONLINE_GAME_PORT = dataIn.readInt();
             } catch (IOException e) {
                 Platform.runLater(() -> {
                     MyAlert.hide_alert("ONLINE");
@@ -148,9 +117,30 @@ public class MainApp extends Application {
                     if (res.isEmpty() || res.get() == cancel) {
                         online.setSelected(false);
                     } else if (res.get() == retry) {
-                        MyAlert.show_alert("ONLINE");
-                        reachServer();
+                        setup_online_multiplayer();
                     }
+                });
+                return;
+            }
+            if (ONLINE_GAME_PORT < 0) {
+                Platform.runLater(() -> {
+                    MyAlert.hide_alert("ONLINE");
+                    Alert alert = new MyAlert(AlertType.INFORMATION, Language.unav(), Language.GS_NA_C);
+                    alert.show();
+                });
+            } else {
+                Platform.runLater(() -> {
+                    enable_gui();
+                    MyAlert.hide_alert("ONLINE");
+                    add_join_shortcut();
+                    Notifications notif = Notifications.create()
+                            .title(MainApp.GAME_NAME.getValue()).text(Language.ONLINE_SETUP_SUCCESS.getValue())
+                            .owner(stage).hideCloseButton().onAction(e -> {
+                                if (stage.isIconified()) stage.setIconified(false);
+                                else if (!stage.isShowing()) stage.show();
+                                else stage.requestFocus();
+                            });
+                    notif.show();
                 });
             }
         };
@@ -160,7 +150,10 @@ public class MainApp extends Application {
         stage.setWidth(Assets.width / 2);
         stage.setHeight(Assets.height / 2);
         stage.setMaximized(true);
-        stage.setOnCloseRequest(e -> release_ressources());
+        stage.setOnCloseRequest(e -> {
+            release_ressources();
+            System.exit(0);
+        });
         createGUI();
         post_initialization();
     }
@@ -175,7 +168,11 @@ public class MainApp extends Application {
         } else {
             Notifications notif = Notifications.create()
                     .title(MainApp.GAME_NAME.getValue()).text(Language.WELCOME_BACK.getValue())
-                    .owner(stage).hideCloseButton();
+                    .owner(stage).hideCloseButton().onAction(e -> {
+                        if (stage.isIconified()) stage.setIconified(false);
+                        else if (!stage.isShowing()) stage.show();
+                        else stage.requestFocus();
+                    });
             notif.show();
             setup_pref_mode();
         }
@@ -220,11 +217,24 @@ public class MainApp extends Application {
                     enable_gui();
                     Notifications notif = Notifications.create()
                             .title(MainApp.GAME_NAME.getValue()).text(Language.LOCAL_SETUP_SUCCESS.getValue())
-                            .owner(stage).hideCloseButton();
+                            .owner(stage).hideCloseButton().onAction(e -> {
+                                if (stage.isIconified()) stage.setIconified(false);
+                                else if (!stage.isShowing()) stage.show();
+                                else stage.requestFocus();
+                            });
                     notif.show();
                 } else {
                     Alert alert = new MyAlert(AlertType.WARNING, Language.LOCAL_SETUP_FAIL_H, Language.LOCAL_SETUP_FAIL_C);
-                    alert.show();
+                    ButtonType retry = new ButtonType(Language.RETRY.getValue());
+                    ButtonType cancel = new ButtonType(Language.CANCEL.getValue(), ButtonData.CANCEL_CLOSE);
+                    alert.getButtonTypes().setAll(retry, cancel);
+                    Optional<ButtonType> res = alert.showAndWait();
+                    if (res.isEmpty() || res.get() == cancel) {
+                        local.setSelected(false);
+                    } else if (res.get() == retry) {
+                        MyAlert.show_alert("LOCAL");
+                        setup_local_multiplayer();
+                    }
                 }
             });
         });
@@ -268,8 +278,8 @@ public class MainApp extends Application {
             PREF_MODE = prop.getProperty("PREF_MODE");
             USERNAME = Files.readString(UN_PATH.toFile().toPath(), StandardCharsets.UTF_8);
             check_props_integrity();
-        } catch (IOException e) {
-            reset_properties(false);
+        } catch (IOException | NumberFormatException e) {
+            reset_properties(false, 0);
         }
     }
 
@@ -313,33 +323,43 @@ public class MainApp extends Application {
         }
     }
 
-    private boolean in_default_settings() {
+    private int in_default_settings() {
         Properties prop = new Properties();
+        boolean local = false, online = false;
         try (InputStream ip = MainApp.class.getResourceAsStream("/def_config.properties")) {
             prop.load(ip);
-            if (!ONLINE_IP.equals(prop.getProperty("ONLINE_IP"))) return false;
-            if (ONLINE_PORT != Integer.parseInt(prop.getProperty("ONLINE_PORT"))) return false;
-            if (!MULTICAST_IP.equals(prop.getProperty("MULTICAST_IP"))) return false;
-            if (JOINERS_PORT != Integer.parseInt(prop.getProperty("JOINERS_PORT"))) return false;
-            if (HOSTERS_PORT != Integer.parseInt(prop.getProperty("HOSTERS_PORT"))) return false;
-            if (ONLINE_TIMEOUT != Integer.parseInt(prop.getProperty("ONLINE_TIMEOUT"))) return false;
-            if (LOCAL_TIMEOUT != Integer.parseInt(prop.getProperty("LOCAL_TIMEOUT"))) return false;
+            if (!ONLINE_IP.equals(prop.getProperty("ONLINE_IP"))) online = true;
+            if (ONLINE_PORT != Integer.parseInt(prop.getProperty("ONLINE_PORT"))) online = true;
+            if (!MULTICAST_IP.equals(prop.getProperty("MULTICAST_IP"))) local = true;
+            if (JOINERS_PORT != Integer.parseInt(prop.getProperty("JOINERS_PORT"))) local = true;
+            if (HOSTERS_PORT != Integer.parseInt(prop.getProperty("HOSTERS_PORT"))) local = true;
+            if (ONLINE_TIMEOUT != Integer.parseInt(prop.getProperty("ONLINE_TIMEOUT"))) online = true;
+            if (LOCAL_TIMEOUT != Integer.parseInt(prop.getProperty("LOCAL_TIMEOUT"))) local = true;
         } catch (IOException e) {
-            return false;
+            return 3;
         }
-        return true;
+        if (local && online) return 3;
+        else if (local) return 2;
+        else if (online) return 1;
+        else return 0;
     }
 
-    private void reset_properties(boolean restore) {
+    private void reset_properties(boolean restore, int change) {
         restore_default_prop();
         update_property("FIRST_TIME", "false");
         if (restore) {
             update_property("THEME", CURRENT_THEME);
             update_property("LANG", Language.LANG_NAME.toString());
-            online.setSelected(false);
-            local.setSelected(false);
+            update_property("PREF_MODE", PREF_MODE);
         }
         get_properties();
+        if ((change == 3 || change == 1) && online.isSelected()) {
+            setup_online_multiplayer();
+        }
+        if ((change == 3 || change == 2) && local.isSelected()) {
+            LocalClient.stop_local();
+            setup_local_multiplayer();
+        }
     }
 
     private void restore_default_prop() {
@@ -822,7 +842,8 @@ public class MainApp extends Application {
         });
 
         restore_defaults.setOnAction(e -> {
-            if (in_default_settings()) {
+            int change = in_default_settings();
+            if (change == 0) {
                 Alert alert = new MyAlert(AlertType.INFORMATION, Language.ALREADY_DEFAULT_H, Language.ALREADY_DEFAULT_C);
                 alert.show();
                 return;
@@ -834,7 +855,7 @@ public class MainApp extends Application {
             Optional<ButtonType> res = alert.showAndWait();
             if (res.isPresent() && res.get() == restore) {
                 MyAlert.show_alert("HOLD");
-                reset_properties(true);
+                reset_properties(true, change);
                 MyAlert.hide_alert("HOLD");
             }
         });
@@ -1198,21 +1219,24 @@ public class MainApp extends Application {
                             Platform.runLater(() -> setRoomApp(roomApp));
                         } catch (IOException e) {
                             Platform.runLater(() -> {
+                                MyAlert.hide_alert("HOLD");
                                 Alert alert = new MyAlert(AlertType.WARNING, Language.HOST_H, Language.CHK_INTERNET);
-                                alert.setOnHidden(hidden -> reachServer());
+                                alert.setOnHidden(hidden -> setup_online_multiplayer());
                                 alert.show();
                             });
                         }
                     } else {
                         Platform.runLater(() -> {
+                            MyAlert.hide_alert("HOLD");
                             Alert alert = new MyAlert(AlertType.WARNING, Language.HOST_H, Language.ALL_TAKEN);
                             alert.show();
                         });
                     }
                 } catch (IOException e) {
                     Platform.runLater(() -> {
+                        MyAlert.hide_alert("HOLD");
                         Alert alert = new MyAlert(AlertType.WARNING, Language.COMM_ERROR_H, Language.CHK_INTERNET);
-                        alert.setOnHidden(hidden -> reachServer());
+                        alert.setOnHidden(hidden -> setup_online_multiplayer());
                         alert.show();
                     });
                 }
@@ -1229,6 +1253,7 @@ public class MainApp extends Application {
                 } catch (IOException e) {
                     roomServer = null;
                     Platform.runLater(() -> {
+                        MyAlert.hide_alert("HOLD");
                         Alert alert = new MyAlert(AlertType.WARNING, Language.HOST_H, Language.CHK_LOCAL);
                         alert.show();
                     });
@@ -1254,7 +1279,7 @@ public class MainApp extends Application {
                 Platform.runLater(() -> {
                     MyAlert.hide_alert("HOLD");
                     Alert alert = new MyAlert(AlertType.WARNING, Language.ROOM_H, Language.ROOM_C);
-                    alert.setOnHidden(hidden -> reachServer());
+                    alert.setOnHidden(hidden -> setup_online_multiplayer());
                     alert.show();
                 });
             }
@@ -1275,7 +1300,7 @@ public class MainApp extends Application {
                     Platform.runLater(() -> {
                         MyAlert.hide_alert("HOLD");
                         Alert alert = new MyAlert(AlertType.WARNING, Language.COMM_ERROR_H, Language.CHK_INTERNET);
-                        alert.setOnHidden(hidden -> reachServer());
+                        alert.setOnHidden(hidden -> setup_online_multiplayer());
                         alert.show();
                     });
                 }
@@ -1315,8 +1340,7 @@ public class MainApp extends Application {
         if (exception) {
             Alert alert = new MyAlert(AlertType.WARNING, Language.COMM_ERROR_H, Language.COMM_ERROR_C);
             alert.setOnHidden(hidden -> {
-                if (online.isSelected())
-                    reachServer();
+                if (online.isSelected()) setup_online_multiplayer();
             });
             alert.show();
         }

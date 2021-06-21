@@ -76,7 +76,7 @@ public class MyAlert extends Alert {
         }
     }
 
-    public MyAlert(AlertType alertType, StringProperty header) {
+    public MyAlert(AlertType alertType, StringProperty header, String content) {
         super(alertType);
         initOwner(MainApp.stage);
         getDialogPane().lookup(".dialog-pane:header *.header-panel")
@@ -89,6 +89,7 @@ public class MyAlert extends Alert {
         );
         titleProperty().bind(MainApp.GAME_NAME);
         headerTextProperty().bind(header);
+        setContentText(content);
         getDialogPane().getStylesheets().add(
                 getClass().getResource(MainApp.CURRENT_THEME.replace("/main_", "/alert_")).toExternalForm());
     }
@@ -143,6 +144,13 @@ public class MyAlert extends Alert {
         titleProperty().bind(title);
         headerTextProperty().bind(header);
         contentTextProperty().bind(content);
+        getDialogPane().getStylesheets().add(
+                getClass().getResource(MainApp.CURRENT_THEME.replace("/main_", "/alert_")).toExternalForm());
+    }
+
+    public void update(String content) {
+        setContentText(content);
+        getDialogPane().getStylesheets().clear();
         getDialogPane().getStylesheets().add(
                 getClass().getResource(MainApp.CURRENT_THEME.replace("/main_", "/alert_")).toExternalForm());
     }

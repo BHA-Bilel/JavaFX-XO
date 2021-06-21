@@ -106,7 +106,7 @@ public class ChatApp {
             if (stage.isShowing()) return;
             unread_messages++;
             if (unread_messages % 5 == 0)
-                room.showNotification(Language.unread_msg(unread_messages), "info");
+                room.showNotification(stage, Language.unread_msg(unread_messages), "info");
         });
     }
 

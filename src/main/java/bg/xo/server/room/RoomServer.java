@@ -25,31 +25,21 @@ public class RoomServer {
     private final ChatServer chatServer;
     private GameServer gameServer;
     private int playerID = 1;
-    private volatile boolean flag, roomClosed = false;
+    private volatile boolean roomClosed = false;
     private final ReentrantLock place_mutex = new ReentrantLock();
     protected final ReentrantLock name_mutex = new ReentrantLock();
     private RoomPosition current_pos;
     protected RoomMsg game_started;
-    private final Runnable connectRunnable, broadcastRunnable;
+    private final Runnable connectRunnable;
     private Thread connectThread;
     private static int room_port;
     protected static volatile boolean migration_finished = false;
-    boolean broadcasting = false;
 
     public RoomServer() throws IOException {
         clients = new ConcurrentHashMap<>();
         roomServer = new ServerSocket(0);
         room_port = roomServer.getLocalPort();
         chatServer = new ChatServer();
-        broadcastRunnable = () -> {
-            while (flag) {
-                try {
-                    LocalClient.waitForClients();
-                } catch (IOException ignore) {
-                }
-            }
-            broadcasting = false;
-        };
         connectRunnable = () -> {
             try {
                 while (clients.size() < MainApp.BG_GAME.players) {
@@ -66,10 +56,7 @@ public class RoomServer {
                     MeetNewClient(new_client);
                     chatServer.acceptNewclient(new_client.id);
                     new_client.start();
-                    if (!broadcasting) {
-                        broadcasting = true;
-                        start_broadcast();
-                    }
+                    LocalClient.hosting(true);
                 }
                 try {
                     roomServer.close();
@@ -78,8 +65,7 @@ public class RoomServer {
             } catch (IOException e) {
                 closeRoom();
             } finally {
-                flag = false;
-                LocalClient.stop_waiting();
+                LocalClient.hosting(false);
             }
         };
         waitForPlayers(true);
@@ -109,20 +95,13 @@ public class RoomServer {
         else return null;
     }
 
-    private void start_broadcast() {
-        Thread boardcastThread = new Thread(broadcastRunnable);
-        boardcastThread.start();
-    }
-
     public void waitForPlayers(boolean initial_wait) {
-        flag = true;
         if (connectThread == null || !connectThread.isAlive()) {
             try {
                 if (!initial_wait) {
                     roomServer.close();
                     roomServer = new ServerSocket(room_port);
-                    broadcasting = true;
-                    start_broadcast();
+                    LocalClient.hosting(true);
                 }
                 connectThread = new Thread(connectRunnable);
                 connectThread.start();
@@ -212,6 +191,9 @@ public class RoomServer {
         Client kicked = clients.remove(id);
         if (kicked == null) return;
         kicked.closeConnection();
+        if (gameServer != null) {
+            endGame();
+        }
         waitForPlayers(false);
     }
 

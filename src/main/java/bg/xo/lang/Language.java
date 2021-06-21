@@ -354,7 +354,7 @@ public class Language {
     }
 
     private static void load_arabic_strings() {
-        COINCHE.set("بلوت الفرنسية");
+        COINCHE.set("البلوت الفرنسية");
         DOMINOS.set("الدومينو");
         CONNECT4.set("4 على التوالي");
         XO.set("تيك تاك تو");
@@ -400,12 +400,12 @@ public class Language {
         LOCAL_SETUP_C.set("الرجاء الإنتظار...");
         ONLINE_SETUP_SUCCESS.set("تم تهيئة الوضع المتصل بنجاح");
         ONLINE_SETUP_FAIL_H.set("فشل تهيئة الوضع المتصل!");
-        ONLINE_SETUP_FAIL_C.set("تأكد من أنك متصل بالإنترنت ،"
+        ONLINE_SETUP_FAIL_C.set("تأكد أنك متصل بالإنترنت ،"
                 + "\n"
                 + "ثم اختر واحدا مما يلي");
         LOCAL_SETUP_SUCCESS.set("تم تهيئة الوضع المحلي بنجاح");
         LOCAL_SETUP_FAIL_H.set("فشل تهيئة الوضع المحلي!");
-        LOCAL_SETUP_FAIL_C.set("تأكد من أنك متصل بشبكة محلية ،"
+        LOCAL_SETUP_FAIL_C.set("تأكد أنك متصل بشبكة محلية ،"
                 + "\n"
                 + "ثم اختر واحدا مما يلي");
 
@@ -437,85 +437,85 @@ public class Language {
         GEN_SH_T.set("الاختصارات العامة");
         GEN_SH_H.set("فيما يلي بعض الاختصارات العامة");
         GEN_SH_C.set("F1"
-                + "\n         كيف ألعب"
+                + "\nكيف ألعب         "
                 + "\n"
                 + "\nF2"
-                + "\n         التبديل بين المظهر الفاتح / الداكن"
+                + "\nالتبديل بين المظهر الفاتح / الداكن         "
                 + "\n"
                 + "\nF11"
-                + "\n         تبديل وضع ملء الشاشة");
+                + "\nتبديل وضع ملء الشاشة         ");
         M_SH_T.set("اختصارات الرئيسية");
         M_SH_H.set("فيما يلي بعض الاختصارات التي يمكنك استخدامها أثناء وجودك في القائمة الرئيسية");
         M_SH_C.set("Ctrl + H"
-                + "\n         استضف غرفة"
+                + "\nاستضف غرفة         "
                 + "\n"
                 + "\nCtrl + J"
-                + "\n         الانضمام إلى الغرف العامة / المحلية"
+                + "\nالانضمام إلى الغرف العامة / المحلية         "
                 + "\n"
                 + "\nCtrl + O"
-                + "\n         التبديل إلى الوضع المتصل"
+                + "\nالتبديل إلى الوضع المتصل         "
                 + "\n"
                 + "\nCtrl + L"
-                + "\n         التبديل إلى الوضع المحلي"
+                + "\nالتبديل إلى الوضع المحلي         "
                 + "\n"
                 + "\nCtrl + R"
-                + "\n         الانضمام إلى غرفة محددة (الوضع المتصل فقط)");
+                + "\nالانضمام إلى غرفة محددة (الوضع المتصل فقط)         ");
         J_SH_T.set("اختصارات الانضمام");
         J_SH_H.set("فيما يلي بعض الاختصارات التي يمكنك استخدامها أثناء وجودك في قائمة الانضمام");
         J_SH_C.set("Ctrl + NUMPAD (1-5)"
-                + "\n         الانضمام إلى الغرفة رقم"
+                + "\nالانضمام إلى الغرفة رقم         "
                 + "\n"
                 + "\nCtrl + R"
-                + "\n         تحديث"
+                + "\nتحديث         "
                 + "\n"
                 + "\nCtrl + N"
-                + "\n         إظهار الغرف التالية (الوضع المحلي فقط)"
+                + "\nإظهار الغرف التالية (الوضع المحلي فقط)         "
                 + "\n"
                 + "\nCtrl + H"
-                + "\n         الرجوع إلى الرئيسية");
+                + "\nالرجوع إلى الرئيسية         ");
         R_SH_T.set("اختصارات الغرفة");
         R_SH_H1.set("إليك بعض الاختصارات التي يمكنك استخدامها ما دمت في غرفة"
                 + "\n"
                 + ", انقر التالي للمزيد");
         R_SH_H2.set("إليك بعض الاختصارات التي يمكنك استخدامها ما دمت في غرفة");
         R_SH_C1.set("Ctrl + C"
-                + "\n         فتح الدردشة (متاح أيضًا أثناء اللعب)"
+                + "\nفتح الدردشة (متاح أيضًا أثناء اللعب)         "
                 + "\n"
                 + "\nCtrl + N"
-                + "\n         تغيير الإسم"
+                + "\nتغيير الإسم         "
                 + "\n"
                 + "\nCtrl + Arrow keys (أسفل ، يمين ، أعلى ، يسار)"
-                + "\n         إحجز المكان الفارغ"
+                + "\nإحجز المكان الفارغ         "
                 + "\n"
                 + "\nCtrl + I"
-                + "\n         نسخ معرف الغرفة (الوضع المتصل فقط)"
+                + "\nنسخ معرف الغرفة (الوضع المتصل فقط)         "
                 + "\n"
                 + "\nCtrl + R"
-                + "\n         تبديل حالة الاستعداد");
+                + "\nتبديل حالة الاستعداد         ");
         R_SH_C2.set("Ctrl + T"
-                + "\n         إظهار / حجب الإشعارات"
+                + "\nإظهار / حجب الإشعارات         "
                 + "\n"
                 + "\nCtrl + K"
-                + "\n         طرد شخص ما (للمشرفين فقط) (متاح أيضًا أثناء اللعب)"
+                + "\nطرد شخص ما (للمشرفين فقط) (متاح أيضًا أثناء اللعب)         "
                 + "\n"
                 + "\nCtrl + P"
-                + "\n         تغيير الخصوصية (للمسؤولين فقط)"
+                + "\nتغيير الخصوصية (للمسؤولين فقط)         "
                 + "\n"
                 + "\nCtrl + S"
-                + "\n         بدء اللعبة (للمشرفين فقط)"
+                + "\nبدء اللعبة (للمشرفين فقط)         "
                 + "\n"
                 + "\nCtrl + H"
-                + "\n         الرجوع إلى الرئيسية");
+                + "\nالرجوع إلى الرئيسية         ");
         NEXT.set("التالي");
         PREVIOUS.set("السابق");
         DONE.set("إنتهاء");
         G_SH_T.set("اختصارات اللعبة");
         G_SH_H.set("فيما يلي بعض الاختصارات التي يمكن استخدامها أثناء اللعب");
         G_SH_C.set("Ctrl + V" +
-                "\n         عرض النتيجة"
+                "\nعرض النتيجة         "
                 + "\n"
                 + "\nCtrl + E"
-                + "\n         انهاء اللعبة (العودة للغرفة)");
+                + "\nانهاء اللعبة (العودة للغرفة)         ");
 
         NETWORK.set("الشبكة");
         CH_ON_IP.set("تغيير عنوان IP للخادم");
@@ -533,6 +533,7 @@ public class Language {
                 + "يمكنك دائمًا استعادة الإعدادات الافتراضية في قائمة الشبكة");
         CH_MC_IP_H.set("أدخل عنوان IP صالح للبث المتعدد"
                 + "\n"
+                + "تأكد من إدخال عنوان فريد لكل لعبة من ألعابي في الشبكة المحلية الخاصة بك"
                 + "\n"
                 + "إذا كنت لا تعرف ما تفعله ، فاترك كل شيء في الإعدادات الافتراضية."
                 + "\n"
@@ -575,7 +576,7 @@ public class Language {
         DOWNLOAD.set("تحميل");
         CHECK.set("التحقق");
         DOWNLOAD_NOW.set("حمل الان");
-        DU_XO_H.set("تأكد من أن لديك أحدث إصدار من تيك تاك تو");
+        DU_XO_H.set("تأكد أن لديك أحدث إصدار من تيك تاك تو");
         DU_XO_C.set("نسختك الحالية هي: " + MainApp.CURRENT_VERSION + " ، تحقق من وجود إصدار جديد");
         DU_CHECKERS_H.set("تريد أن تلعب الداما مع أصدقائك؟");
         DU_CHECKERS_C.set("قم بتنزيل لعبة الداما الخاصة بي مجانًا");
@@ -874,6 +875,7 @@ public class Language {
                 + "Vous pouvez toujours restaurer les paramètres par défaut dans le menu réseau");
         CH_MC_IP_H.set("Saisissez une adresse IP de multidiffusion valide"
                 + "\n"
+                + "Assurez-vous d'entrer une adresse unique pour chacun de mes jeux dans votre réseau local"
                 + "\n"
                 + "Si vous ne savez pas ce que vous faites, laissez tout dans les paramètres par défaut."
                 + "\n"
@@ -1034,7 +1036,7 @@ public class Language {
     }
 
     private static void load_english_strings() {
-        COINCHE.set("Coinche");
+        COINCHE.set("French coinche");
         DOMINOS.set("Dominoes");
         CONNECT4.set("Connect 4");
         XO.set("xo");
@@ -1212,6 +1214,7 @@ public class Language {
                 + "You can always restore default settings in the network menu");
         CH_MC_IP_H.set("Enter a valid multicast IP address"
                 + "\n"
+                + "Make sure you enter a unique address for each of my games in your local area network"
                 + "\n"
                 + "If you don't know what you're doing, leave everything in default settings."
                 + "\n"
@@ -1247,7 +1250,7 @@ public class Language {
         RESTORE_H.set("Do you want to restore default settings?");
         RESTORE_C.set("The current settings cannot be restored");
         RESTORE_BT.set("Restore");
-        ALREADY_DEFAULT_H.set("You are already using the default settings!");
+        ALREADY_DEFAULT_H.set("you're already using the default settings!");
         ALREADY_DEFAULT_C.set("Default settings have not been changed yet");
         UPDATE.set("Update");
         DOWNLOAD.set("Download");
@@ -1305,7 +1308,7 @@ public class Language {
         RID_H2.set("Invalid room ID");
         RID_C2.set("This room doesn't exist!");
         HOST_H.set("Couldn't host a room");
-        CHK_INTERNET.set("Make sure you are connected to Internet ");
+        CHK_INTERNET.set("Make sure you're connected to Internet ");
         CHK_LOCAL.set("Make sure you're connected to a local area network");
         ALL_TAKEN.set("Unfortunately, all rooms are taken."
                 + "\n"
@@ -1356,7 +1359,7 @@ public class Language {
         MIGRATION_H1.set("Migration started");
         MIGRATION_C1.set("Please wait for migration to new room");
         MIGRATION_H2.set("Migration finished");
-        MIGRATION_C2.set("You are now connected to new host's room");
+        MIGRATION_C2.set("you're now connected to new host's room");
         CNT_ACCESS_H.set("You can't access this room");
         CNT_ACCESS_C.set("The room you're trying to access is meant for another game");
         GE_H.set("The game has ended!");
